@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Editory / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logy a dočasné soubory
+*.log
+*.tmp
+*.bak
+tmp/
+temp/
+
+# Node (pro případ, že později přidáš build nástroje)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.local
+
+# Systémové / ostatní
+Thumbs.db

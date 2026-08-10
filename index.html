@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="cs">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f1ea">
+<title>Slovíčka pro tátu</title>
+<!-- PWA: appka funguje v prohlížeči i po přidání na plochu -->
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Slovíčka">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png" type="image/png">
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ================================================================
+     Vzhled podle designu "Lumina Lexicon":
+     papírový klid, teplé barvy, velká písmena, dotykové plochy 64 px.
+     ================================================================ */
+  :root {
+    --bg: #f4f1ea;              /* pergamen */
+    --card: #ffffff;
+    --surface-2: #faf8f3;       /* horní lišta */
+    --ink: #121d26;
+    --muted: #5a4139;           /* teplá hnědá, ne studená šedá */
+    --accent: #a93200;          /* pálená oranžová – španělština */
+    --accent-soft: #ffdbd0;
+    --accent-line: #e3bfb4;
+    --green: #006b25;
+    --green-soft: #e6f4ea;
+    --red: #ba1a1a;
+    --red-soft: #ffdad6;
+    --line: #e5e1d8;
+    --shadow: 0 12px 32px rgba(58,40,30,.09);
+    --r-card: 24px;
+    --r-btn: 18px;
+    --r-sm: 16px;
+  }
+  /* Angličtina má vlastní barvu, ať táta hned pozná, v čem se učí */
+  body[data-lang="en"] {
+    --accent: #174f8f;
+    --accent-soft: #dbe7f7;
+    --accent-line: #b4c8e3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16130f;
+      --card: #221d18;
+      --surface-2: #1c1813;
+      --ink: #f4f1ea;
+      --muted: #b8a79f;
+      --accent: #ff8a5c;
+      --accent-soft: #3d2318;
+      --accent-line: #573527;
+      --green: #79dc8a;
+      --green-soft: #1b2c1f;
+      --red: #ff8f87;
+      --red-soft: #331b1a;
+      --line: #342e28;
+      --shadow: 0 12px 32px rgba(0,0,0,.45);
+    }
+    body[data-lang="en"] {
+      --accent: #82b7f2;
+      --accent-soft: #172538;
+      --accent-line: #2c4260;
+    }
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { height: 100%; }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 18px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: max(12px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+  }
+  .wrap { width: 100%; max-width: 560px; flex: 1; display: flex; flex-direction: column; }
+
+  /* Horní lišta (jen na obrazovkách po výběru jazyka) */
+  .topbar {
+    display: none;
+    align-items: center; justify-content: center;
+    min-height: 56px; margin: 0 -20px 14px; padding: 0 20px;
+    background: var(--surface-2); border-bottom: 1px solid var(--line);
+    color: var(--accent); font-size: 24px; font-weight: 700; letter-spacing: -.02em;
+  }
+  body.show-topbar .topbar { display: flex; }
+
+  .screen { display: none; }
+  .screen.active { display: flex; flex-direction: column; flex: 1; }
+  /* spodní blok se drží u dolní hrany obrazovky, jako v návrhu */
+  .screen-bottom { margin-top: auto; padding-top: 28px; display: grid; gap: 12px; }
+
+  h1 { font-size: 32px; line-height: 1.15; font-weight: 700; letter-spacing: -.02em; margin: 12px 0 4px; }
+  h2 { font-size: 26px; font-weight: 700; margin: 0 0 6px; }
+  .sub { color: var(--muted); font-size: 18px; margin: 0 0 28px; }
+  .choice-label { font-size: 18px; font-weight: 600; margin: 0 0 12px; }
+
+  /* Tlačítka */
+  button { font-family: inherit; cursor: pointer; border: none; }
+  .btn {
+    display: block; width: 100%; min-height: 64px;
+    font-size: 22px; font-weight: 600;
+    padding: 18px 20px; border-radius: var(--r-btn);
+    background: var(--accent); color: #fff;
+    transition: transform .06s ease;
+  }
+  .btn:active { transform: scale(.985); }
+  .btn.ghost { background: transparent; color: var(--accent); border: 2px solid var(--accent-line); }
+  .btn.know  { background: var(--green-soft); color: var(--green); border: 2px solid var(--green); }
+  .btn.dunno { background: var(--red-soft);   color: var(--red);   border: 2px solid var(--red); }
+  .linkbtn { background: none; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; font-size: 16px; padding: 10px 6px; }
+
+  /* Volba jazyka + volba směru */
+  .dir { display: grid; gap: 12px; margin: 0 0 28px; }
+  .dir button {
+    text-align: left; background: var(--card); color: var(--ink);
+    border: 2px solid transparent; border-radius: var(--r-sm);
+    min-height: 64px; padding: 18px 20px;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 2px 10px rgba(58,40,30,.05);
+    transition: border-color .15s, background .15s;
+  }
+  .dir button .flag { font-size: 26px; line-height: 1; flex: none; }
+  .dir button .lbl { font-size: 20px; font-weight: 600; display: block; }
+  .dir button .hint { display: block; color: var(--muted); font-size: 16px; font-weight: 400; margin-top: 2px; }
+  .dir button.sel { border-color: var(--accent); background: var(--accent-soft); }
+  .dir button.sel .hint { color: var(--accent); }
+
+  /* Počet slovíček */
+  .count { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0 0 8px; }
+  .count button {
+    background: var(--card); color: var(--ink);
+    border: 2px solid transparent; border-radius: var(--r-sm);
+    min-height: 96px; padding: 16px 0;
+    font-size: 32px; font-weight: 700; line-height: 1.1;
+    box-shadow: 0 2px 10px rgba(58,40,30,.05);
+    transition: border-color .15s, background .15s;
+  }
+  .count button .mins { display: block; font-size: 15px; font-weight: 400; color: var(--muted); margin-top: 4px; }
+  .count button.sel { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+  .count button.sel .mins { color: var(--accent); }
+
+  /* Průběh lekce */
+  .progress { text-align: center; color: var(--muted); font-size: 17px; margin: 0 0 10px; }
+  .progbar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; margin: 0 0 24px; }
+  .progbar > i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s ease; }
+
+  /* Kartička */
+  .card {
+    background: var(--card); border-radius: var(--r-card); box-shadow: var(--shadow);
+    min-height: 320px; padding: 32px 26px; text-align: center;
+    display: flex; flex-direction: column; justify-content: center; gap: 16px;
+  }
+  .card .tag { color: var(--muted); font-size: 14px; text-transform: uppercase; letter-spacing: .12em; font-weight: 500; }
+  .card .word { font-size: 48px; font-weight: 700; line-height: 1.1; letter-spacing: -.02em; word-break: break-word; }
+  .card .word.long { font-size: 34px; }
+  .card .article { color: var(--accent); }
+  .card .source { font-size: 18px; color: var(--muted); }
+  .card .pron { color: var(--muted); font-size: 17px; }
+  .card hr { border: none; border-top: 1px solid var(--accent-line); width: 55%; margin: 6px auto; }
+  .card .sentence { font-size: 20px; font-weight: 600; line-height: 1.4; }
+  .card .sentence .cz { display: block; color: var(--muted); font-size: 18px; font-weight: 400; margin-top: 6px; }
+
+  .speak {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--accent-soft); color: var(--accent);
+    border-radius: 999px; padding: 14px 24px; min-height: 52px;
+    font-size: 18px; font-weight: 600; margin: 4px auto 0;
+  }
+  .speak:active { transform: scale(.97); }
+
+  #voice-warn {
+    background: #fff4e5; color: #7a4b00; border: 1px solid #ffd699;
+    border-radius: var(--r-sm); padding: 14px 16px; margin-bottom: 16px;
+    font-size: 16px; line-height: 1.45;
+  }
+  @media (prefers-color-scheme: dark) {
+    #voice-warn { background: #2e2214; color: #ffd699; border-color: #5c451f; }
+  }
+
+  .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Konec lekce */
+  .done-top { text-align: center; padding-top: 24px; }
+  .check {
+    width: 72px; height: 72px; border-radius: 999px;
+    background: var(--green); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 38px; font-weight: 700; margin: 0 auto 20px;
+  }
+  @media (prefers-color-scheme: dark) { .check { color: #16130f; } }
+  .stats {
+    background: var(--card); border-radius: var(--r-card); box-shadow: var(--shadow);
+    padding: 8px 24px 20px; margin-top: 24px; text-align: left;
+  }
+  .stats .row {
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    padding: 18px 0; border-bottom: 1px solid var(--line); font-size: 18px;
+  }
+  .stats .row b { font-size: 20px; font-weight: 700; }
+  .stats .row b.good { color: var(--green); }
+  .stats .note { padding-top: 18px; text-align: center; color: var(--muted); font-size: 17px; }
+
+  .footer-note { text-align: center; color: var(--muted); font-size: 16px; margin-top: 28px; line-height: 1.6; }
+</style>
+
+<body>
+<div class="wrap">
+
+  <header class="topbar" id="topbar">Slovíčka</header>
+
+  <!-- 0) VÝBĚR JAZYKA -->
+  <section id="lang" class="screen active">
+    <h1>Dobrý den 👋</h1>
+    <p class="sub">Co si dnes zopakujeme?</p>
+
+    <div class="dir" id="lang-choice">
+      <button data-lang="es">
+        <span class="flag">🇪🇸</span>
+        <span><span class="lbl">Španělština</span>
+        <span class="hint" id="lang-hint-es">100 nejpoužívanějších slov</span></span>
+      </button>
+      <button data-lang="en">
+        <span class="flag">🇬🇧</span>
+        <span><span class="lbl">Angličtina</span>
+        <span class="hint" id="lang-hint-en">500 nejpoužívanějších slov</span></span>
+      </button>
+    </div>
+
+    <div class="screen-bottom">
+      <div class="footer-note">
+        Pokrok v každém jazyce se počítá zvlášť.<br>
+        <button class="linkbtn" id="backup-btn">Zálohovat pokrok</button> ·
+        <button class="linkbtn" id="restore-btn">Obnovit ze zálohy</button>
+        <input type="file" id="restore-file" accept="application/json" hidden>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1) NASTAVENÍ LEKCE -->
+  <section id="home" class="screen">
+    <h1 id="home-title">Dnes tě čeká pár slov</h1>
+    <p class="sub" id="home-sub"></p>
+
+    <div class="choice-label">Jak chceš procvičovat?</div>
+    <div class="dir" id="dir-choice">
+      <button data-dir="f2cz">
+        <span class="flag" id="dir-flag-1">🇪🇸→🇨🇿</span>
+        <span><span class="lbl" id="dir-lbl-1">Vidím španělsky, hádám česky</span>
+        <span class="hint">snadnější</span></span>
+      </button>
+      <button data-dir="cz2f">
+        <span class="flag" id="dir-flag-2">🇨🇿→🇪🇸</span>
+        <span><span class="lbl" id="dir-lbl-2">Vidím česky, hádám španělsky</span>
+        <span class="hint">těžší, ale užitečnější</span></span>
+      </button>
+    </div>
+
+    <div class="choice-label">Kolik toho dnes?</div>
+    <div class="count" id="count-choice">
+      <button data-count="10" class="sel">10<span class="mins">5 min</span></button>
+      <button data-count="20">20<span class="mins">10 min</span></button>
+      <button data-count="30">30<span class="mins">15 min</span></button>
+    </div>
+
+    <div class="screen-bottom">
+      <button class="btn" id="start-btn">Začít</button>
+      <div class="footer-note">
+        <button class="linkbtn" id="change-lang-btn">← Změnit jazyk</button><br>
+        Pokrok se ukládá v tomto prohlížeči na tomto zařízení.
+      </div>
+    </div>
+  </section>
+
+  <!-- 2+3) KARTIČKA -->
+  <section id="study" class="screen">
+    <div class="progress" id="prog-text">1 z 10</div>
+    <div class="progbar"><i id="prog-fill"></i></div>
+
+    <div id="voice-warn" style="display:none"></div>
+
+    <div class="card" id="card"><!-- vyplní JS --></div>
+
+    <div class="screen-bottom">
+      <div id="front-actions">
+        <button class="btn" id="flip-btn">Otočit</button>
+      </div>
+      <div id="back-actions" class="grade" style="display:none">
+        <button class="btn dunno" id="dunno-btn">Nevěděl jsem</button>
+        <button class="btn know" id="know-btn">Věděl jsem</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4) KONEC LEKCE -->
+  <section id="end" class="screen">
+    <div class="done-top">
+      <div class="check">✓</div>
+      <h2 id="end-title">Hotovo!</h2>
+      <p class="sub" id="end-text" style="margin-bottom:0"></p>
+
+      <div class="stats" id="end-stats">
+        <div class="row"><span>Nová slova</span><b id="stat-new">0</b></div>
+        <div class="row"><span>Úspěšnost</span><b id="stat-rate">0 %</b></div>
+        <div class="note" id="stat-tomorrow"></div>
+      </div>
+    </div>
+
+    <div class="screen-bottom">
+      <button class="btn" id="more-btn" style="display:none">Ještě 5 slov</button>
+      <button class="btn ghost" id="again-btn">Zavřít</button>
+    </div>
+  </section>
+
+</div>
+
+<script src="slova-es.js"></script>
+<script src="slova-en.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Nastavení jazyků ----------
+  // Přidání dalšího jazyka = jeden nový soubor slova-XX.js + jeden záznam sem.
+  var LANGS = {
+    es: {
+      nazev: "Španělština",
+      vlajka: "🇪🇸",
+      prid: "španělsky",           // "Vidím ___"
+      tag: "Španělsky",            // popisek na kartičce
+      hlasKod: "es",               // předpona kódu hlasu
+      hlasPreferovany: "es-es",
+      hlasZaloha: "es-ES",
+      hlasNazev: "španělský hlas",
+      hlasNavod: "např. iPhone/iPad: Nastavení → Přístupnost → Mluvený obsah → Hlasy → Španělština",
+      data: window.SLOVA_ES || [],
+      poleSlovo: "es",
+      poleVeta: "veta_es"
+    },
+    en: {
+      nazev: "Angličtina",
+      vlajka: "🇬🇧",
+      prid: "anglicky",
+      tag: "Anglicky",
+      hlasKod: "en",
+      hlasPreferovany: "en-gb",
+      hlasZaloha: "en-GB",
+      hlasNazev: "anglický hlas",
+      hlasNavod: "např. iPhone/iPad: Nastavení → Přístupnost → Mluvený obsah → Hlasy → Angličtina",
+      data: window.SLOVA_EN || [],
+      poleSlovo: "en",
+      poleVeta: "veta_en"
+    }
+  };
+
+  // ---------- Leitnerův systém ----------
+  var BOX_DAYS = { 1: 1, 2: 3, 3: 7, 4: 14, 5: 30 }; // za kolik dní se slovo vrátí
+  var UMI_OD_BOXU = 4;   // od které krabičky se slovo počítá jako "umí" (krabička 4 = 3× dobře po sobě)
+  var STORE_KEY = "slovicka_v2";
+  var OLD_ES_KEY = "spanelstina_v1"; // pokrok z verze, kde byla jen španělština
+
+  // ---------- Ukládání ----------
+  // store = { es: { cards: { "<id>:<dir>": {box, due, seen} } }, en: { cards: {} } }
+  function prazdnyStore() { return { es: { cards: {} }, en: { cards: {} } }; }
+
+  // Přemapuje klíče staré španělské verze (dir es2cz/cz2es → f2cz/cz2f)
+  // a nasype je do cílových es-karet. Používá load() i obnova ze zálohy.
+  function migrujStareES(oldCards, cilCards) {
+    Object.keys(oldCards).forEach(function (key) {
+      var novy = key.replace(/:es2cz$/, ":f2cz").replace(/:cz2es$/, ":cz2f");
+      cilCards[novy] = oldCards[key];
+    });
+  }
+
+  function load() {
+    var s = prazdnyStore();
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        var d = JSON.parse(raw);
+        Object.keys(s).forEach(function (k) {
+          if (d && d[k] && d[k].cards) s[k].cards = d[k].cards;
+        });
+        return s;
+      }
+    } catch (e) {}
+    // migrace ze staré španělské verze (dir se jmenoval es2cz / cz2es)
+    try {
+      var old = localStorage.getItem(OLD_ES_KEY);
+      if (old) {
+        var o = JSON.parse(old);
+        if (o && o.cards) migrujStareES(o.cards, s.es.cards);
+      }
+    } catch (e) {}
+    return s;
+  }
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
+  }
+  var store = load();
+
+  function cards() { return store[langKey].cards; }
+
+  function today() { return isoDate(new Date()); }
+  function isoDate(d) {
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function addDays(iso, n) {
+    var p = iso.split("-");
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    d.setDate(d.getDate() + n);
+    return isoDate(d);
+  }
+  function isDue(iso) { return iso <= today(); } // porovnání řetězců YYYY-MM-DD funguje
+
+  // ---------- Stav běhu ----------
+  var langKey = "es";
+  var cfg = LANGS.es;
+  var WORDS = [];
+  var byId = {};
+  var dir = "f2cz";
+  var targetCount = 10;
+  var sessionIds = [];
+  var sessionTotal = 0;  // plánovaný počet slov (neroste s opakováním)
+  var idx = 0;
+  var EXTRA_MAX = 2;      // kolikrát navíc se slovo v session zopakuje, když ho nevěděl
+  var extraRepeats = {};  // id -> kolikrát už bylo v této návštěvě přidáno navíc
+  var correctCount = 0;   // správně za celou návštěvu
+  var totalDone = 0;      // odpovědí celkem za návštěvu (i po "Ještě 5 slov")
+  var newCount = 0;       // kolik slov viděl dnes úplně poprvé
+  var hotovoIds = {};     // co už v této návštěvě prošel
+  var flipped = false;
+
+  function byEl(id) { return document.getElementById(id); }
+
+  function setLang(k) {
+    langKey = k;
+    cfg = LANGS[k];
+    WORDS = cfg.data;
+    byId = {};
+    WORDS.forEach(function (w) { byId[w.id] = w; });
+    document.body.setAttribute("data-lang", k);
+    pickVoice();
+
+    byEl("dir-flag-1").textContent = cfg.vlajka + "→🇨🇿";
+    byEl("dir-flag-2").textContent = "🇨🇿→" + cfg.vlajka;
+    byEl("dir-lbl-1").textContent = "Vidím " + cfg.prid + ", hádám česky";
+    byEl("dir-lbl-2").textContent = "Vidím česky, hádám " + cfg.prid;
+    setDir("f2cz");
+  }
+
+  // pomocné čtení polí podle jazyka
+  function slovo(w) { return w[cfg.poleSlovo]; }
+  function veta(w) { return w[cfg.poleVeta]; }
+
+  // ---------- Kolik slov už umí ----------
+  // Slovo se počítá jako "umím", když je aspoň v jednom směru v krabičce 4
+  // a výš (to znamená třikrát po sobě správně; vrací se nejdřív za 14 dní).
+  function umiPocet(k) {
+    var c = (store[k] && store[k].cards) || {}, umi = {};
+    Object.keys(c).forEach(function (key) {
+      if (c[key] && c[key].box >= UMI_OD_BOXU) umi[key.split(":")[0]] = true;
+    });
+    return Object.keys(umi).length;
+  }
+  function updateLangHints() {
+    ["es", "en"].forEach(function (k) {
+      var celkem = (LANGS[k].data || []).length;
+      var el = byEl("lang-hint-" + k);
+      if (!celkem) { el.textContent = "Slovíčka se nepodařilo načíst."; return; }
+      var umi = umiPocet(k);
+      el.textContent = umi > 0
+        ? umi + " z " + celkem + " slov už umíš"
+        : celkem + " nejpoužívanějších slov";
+    });
+  }
+
+  // ---------- Sestavení dnešní dávky ----------
+  // Nejdřív slova, která jsou dnes na řadě k opakování, pak nová, dokud
+  // nedosáhneme zvoleného počtu. `vynech` = co už dnes prošel.
+  function buildSession(d, count, vynech) {
+    var due = [];
+    var fresh = [];
+    var c = cards();
+    WORDS.forEach(function (w) {
+      if (vynech && vynech[w.id]) return;
+      var rec = c[w.id + ":" + d];
+      if (rec && rec.seen) {
+        if (isDue(rec.due)) due.push(w.id);
+      } else {
+        fresh.push(w.id);
+      }
+    });
+
+    shuffle(due);
+    fresh.sort(function (a, b) { return a - b; }); // po pořadí (od nejfrekventovanějších)
+
+    var session = due.slice(0, count);
+    if (session.length < count) {
+      session = session.concat(fresh.slice(0, count - session.length));
+    }
+    shuffle(session);
+    return { ids: session };
+  }
+
+  // Kolik slov bude na řadě zítra (ve zvoleném směru).
+  function pocetNaZitra() {
+    var zitra = addDays(today(), 1);
+    var c = cards();
+    var n = 0;
+    WORDS.forEach(function (w) {
+      var rec = c[w.id + ":" + dir];
+      if (rec && rec.seen && rec.due <= zitra) n++;
+    });
+    return n;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function grade(wordId, d, correct) {
+    var key = wordId + ":" + d;
+    var c = cards()[key];
+    if (!c) c = { box: 1, due: today(), seen: false };
+    if (!c.seen) { c.seen = true; newCount++; }
+    if (correct) c.box = Math.min(5, c.box + 1);
+    else c.box = 1; // padá zpět bez milosti
+    c.due = addDays(today(), BOX_DAYS[c.box]);
+    cards()[key] = c;
+    save();
+  }
+
+  // ---------- Výslovnost (Web Speech API) ----------
+  var voice = null;
+  function pickVoice() {
+    voice = null;
+    if (!("speechSynthesis" in window)) { updateVoiceWarning(); return; }
+    var vs = window.speechSynthesis.getVoices();
+    var kod = cfg.hlasKod;
+    var pref = cfg.hlasPreferovany;
+    voice = vs.filter(function (v) {
+      return v.lang && v.lang.toLowerCase().indexOf(kod) === 0;
+    }).sort(function (a, b) {
+      var aP = a.lang.toLowerCase() === pref ? 0 : 1;
+      var bP = b.lang.toLowerCase() === pref ? 0 : 1;
+      return aP - bP;
+    })[0] || null;
+    updateVoiceWarning();
+  }
+  function updateVoiceWarning() {
+    var el = byEl("voice-warn");
+    if (!el) return;
+    var loaded = ("speechSynthesis" in window) && window.speechSynthesis.getVoices().length > 0;
+    if (loaded && !voice) {
+      el.innerHTML = "⚠️ Na tomto zařízení není nainstalovaný <b>" + cfg.hlasNazev +
+        "</b>, takže se slova nemusí číst správně. Přidat se dá v nastavení systému (" +
+        cfg.hlasNavod + ").";
+      el.style.display = "block";
+    } else {
+      el.style.display = "none";
+    }
+  }
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.onvoiceschanged = pickVoice;
+  }
+  function speak(text) {
+    if (!("speechSynthesis" in window)) return;
+    if (!voice) pickVoice(); // hlasy se mohly načíst až teď (asynchronně)
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = voice ? voice.lang : cfg.hlasZaloha;
+    if (voice) u.voice = voice;
+    u.rate = 0.9;
+    window.speechSynthesis.speak(u);
+  }
+
+  // ---------- Obrazovky ----------
+  var screens = {
+    lang: byEl("lang"), home: byEl("home"), study: byEl("study"), end: byEl("end")
+  };
+  function show(name) {
+    Object.keys(screens).forEach(function (k) { screens[k].classList.toggle("active", k === name); });
+    document.body.classList.toggle("show-topbar", name !== "lang");
+    window.scrollTo(0, 0);
+  }
+
+  // ---------- Výběr jazyka ----------
+  document.querySelectorAll("#lang-choice button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      setLang(b.getAttribute("data-lang"));
+      show("home");
+      updateHomeSub();
+    });
+  });
+  byEl("change-lang-btn").addEventListener("click", function () {
+    updateLangHints();
+    show("lang");
+  });
+
+  // ---------- Nastavení lekce ----------
+  var dirButtons = document.querySelectorAll("#dir-choice button");
+  function setDir(d) {
+    dir = d;
+    dirButtons.forEach(function (b) { b.classList.toggle("sel", b.getAttribute("data-dir") === d); });
+    updateHomeSub();
+  }
+  dirButtons.forEach(function (b) {
+    b.addEventListener("click", function () { setDir(b.getAttribute("data-dir")); });
+  });
+
+  var countButtons = document.querySelectorAll("#count-choice button");
+  function setCount(n) {
+    targetCount = n;
+    countButtons.forEach(function (b) { b.classList.toggle("sel", +b.getAttribute("data-count") === n); });
+    updateHomeSub();
+  }
+  countButtons.forEach(function (b) {
+    b.addEventListener("click", function () { setCount(+b.getAttribute("data-count")); });
+  });
+
+  function updateHomeSub() {
+    var avail = buildSession(dir, 9999).ids.length;
+    var title = byEl("home-title");
+    var sub = byEl("home-sub");
+    if (!WORDS.length) {
+      title.textContent = "Něco se pokazilo";
+      sub.textContent = "Slovíčka pro tento jazyk se nepodařilo načíst.";
+      return;
+    }
+    if (avail === 0) {
+      title.textContent = "Na dnešek hotovo 👍";
+      sub.textContent = "Všechno máš zopakované. Přijď zase zítra.";
+    } else {
+      var n = Math.min(targetCount, avail);
+      title.textContent = "Dnes tě " + cekaSloveso(n) + " " + pocetSlov(n);
+      sub.textContent = cfg.nazev + " · pokrok se ukládá sám.";
+    }
+  }
+  function slov(n) {
+    if (n === 1) return "slovo";
+    if (n >= 2 && n <= 4) return "slova";
+    return "slov";
+  }
+  // shoda slovesa: 1 slovo čeká, 3 slova čekají, 8 slov čeká
+  function cekaSloveso(n) { return (n >= 2 && n <= 4) ? "čekají" : "čeká"; }
+  function pocetSlov(n) { return n + " " + slov(n); }
+
+  byEl("start-btn").addEventListener("click", function () {
+    correctCount = 0;
+    totalDone = 0;
+    newCount = 0;
+    hotovoIds = {};
+    extraRepeats = {};   // nová návštěva → počítadlo opakování začíná od nuly
+    startSession(targetCount);
+  });
+
+  function startSession(count) {
+    var s = buildSession(dir, count, hotovoIds);
+    if (s.ids.length === 0) { finish(); return; }
+    sessionIds = s.ids;
+    sessionTotal = sessionIds.length;
+    idx = 0;
+    show("study");
+    renderFront();
+  }
+
+  // ---------- Vykreslení kartičky ----------
+  function currentWord() { return byId[sessionIds[idx]]; }
+
+  function sCizi(w) {
+    // slovo v cizím jazyce, u španělských podstatných jmen i se členem
+    if (w.clen) return "<span class='article'>" + escapeHtml(w.clen) + "</span> " + escapeHtml(slovo(w));
+    return escapeHtml(slovo(w));
+  }
+  function ciziText(w) { return (w.clen ? w.clen + " " : "") + slovo(w); }
+  function dlouhe(t) { return String(t).length > 14 ? " long" : ""; }
+
+  function renderFront() {
+    flipped = false;
+    var w = currentWord();
+    var card = byEl("card");
+    var jeCizi = dir === "f2cz";
+    var text = jeCizi ? ciziText(w) : w.cz;
+    var html = "";
+    html += "<div class='tag'>" + (jeCizi ? cfg.tag : "Česky") + "</div>";
+    html += "<div class='word" + dlouhe(text) + "'>" + (jeCizi ? sCizi(w) : escapeHtml(w.cz)) + "</div>";
+    if (jeCizi && w.vyslovnost) html += "<div class='pron'>[ " + escapeHtml(w.vyslovnost) + " ]</div>";
+    if (jeCizi) html += "<button class='speak' id='speak-front'>🔊 Přehrát</button>";
+    card.innerHTML = html;
+    if (jeCizi) byEl("speak-front").addEventListener("click", function (e) { e.stopPropagation(); speak(slovo(w)); });
+
+    byEl("front-actions").style.display = "block";
+    byEl("back-actions").style.display = "none";
+
+    // Opakování chybných slov přidává karty navíc; jmenovatel držíme na
+    // plánovaném počtu, ať "X z N" a lišta během lekce neposkakují.
+    var shown = Math.min(idx + 1, sessionTotal);
+    byEl("prog-text").textContent = shown + " z " + sessionTotal;
+    byEl("prog-fill").style.width = (Math.min(idx, sessionTotal) / sessionTotal * 100) + "%";
+
+    card.onclick = flip;
+  }
+
+  function renderBack() {
+    flipped = true;
+    var w = currentWord();
+    var card = byEl("card");
+    var jeCizi = dir === "f2cz";
+    // nahoře malým písmem to, co viděl na přední straně; velkým je odpověď
+    var maleHtml  = jeCizi ? sCizi(w) : escapeHtml(w.cz);
+    var velkeHtml = jeCizi ? escapeHtml(w.cz) : sCizi(w);
+    var velkeText = jeCizi ? w.cz : ciziText(w);
+
+    var html = "";
+    html += "<div class='source'>" + maleHtml + "</div>";
+    html += "<div class='word" + dlouhe(velkeText) + "'>" + velkeHtml + "</div>";
+    if (w.vyslovnost) html += "<div class='pron'>[ " + escapeHtml(w.vyslovnost) + " ]</div>";
+    html += "<hr>";
+    html += "<div class='sentence'>" + escapeHtml(veta(w)) +
+            "<span class='cz'>" + escapeHtml(w.veta_cz) + "</span></div>";
+    html += "<button class='speak' id='speak-back'>🔊 Přehrát větu</button>";
+    card.innerHTML = html;
+    card.onclick = null;
+    byEl("speak-back").addEventListener("click", function (e) { e.stopPropagation(); speak(veta(w)); });
+
+    byEl("front-actions").style.display = "none";
+    byEl("back-actions").style.display = "grid";
+
+    // po otočení automaticky přehraj slovo, ať slyší výslovnost
+    speak(slovo(w));
+  }
+
+  function flip() { if (!flipped) renderBack(); }
+
+  byEl("flip-btn").addEventListener("click", flip);
+  byEl("know-btn").addEventListener("click", function () { answer(true); });
+  byEl("dunno-btn").addEventListener("click", function () { answer(false); });
+
+  function answer(correct) {
+    var w = currentWord();
+    if (correct) correctCount++;
+    totalDone++;
+    hotovoIds[w.id] = true;
+    grade(w.id, dir, correct);
+
+    // Nevěděl → ukázat slovo ještě jednou v této session (max EXTRA_MAX× navíc),
+    // ať má šanci si ho zapamatovat. Vkládáme dál ve frontě, ne hned další kartu.
+    if (!correct) {
+      var ek = langKey + ":" + w.id;
+      var pridano = extraRepeats[ek] || 0;
+      if (pridano < EXTRA_MAX) {
+        extraRepeats[ek] = pridano + 1;
+        var kam = Math.min(sessionIds.length, idx + 3 + pridano);
+        sessionIds.splice(kam, 0, w.id);
+      }
+    }
+
+    idx++;
+    if (idx >= sessionIds.length) finish();
+    else renderFront();
+  }
+
+  // ---------- Konec lekce ----------
+  function finish() {
+    var zbyva = buildSession(dir, 9999, hotovoIds).ids.length;
+    var zitra = pocetNaZitra();
+
+    if (totalDone === 0) {
+      byEl("end-title").textContent = "Na dnešek hotovo 👍";
+      byEl("end-text").textContent = "Všechno máš zopakované. Přijď zase zítra.";
+      byEl("end-stats").style.display = "none";
+    } else {
+      var rate = Math.round(correctCount / totalDone * 100);
+      byEl("end-title").textContent = "Hotovo!";
+      byEl("end-text").textContent = "Dnes jsi zvládl " + totalDone + " " + slov(totalDone) +
+        ", " + correctCount + " správně.";
+      byEl("end-stats").style.display = "block";
+      byEl("stat-new").textContent = newCount;
+      byEl("stat-rate").textContent = rate + " %";
+      byEl("stat-rate").className = rate >= 60 ? "good" : "";
+      byEl("stat-tomorrow").textContent = zitra > 0
+        ? "Vrať se zítra, " + cekaSloveso(zitra) + " tě " + pocetSlov(zitra) + "."
+        : "Zítra tě nečeká nic. Klidně si přidej nová slova.";
+    }
+
+    var more = byEl("more-btn");
+    if (zbyva > 0) {
+      var kolik = Math.min(5, zbyva);
+      more.textContent = "Ještě " + kolik + " " + slov(kolik);
+      more.style.display = "block";
+      more.onclick = function () { startSession(kolik); };
+    } else {
+      more.style.display = "none";
+    }
+
+    show("end");
+    updateHomeSub();
+    updateLangHints();
+  }
+
+  byEl("again-btn").addEventListener("click", function () { show("home"); updateHomeSub(); });
+
+  // ---------- Záloha / obnova (obsahuje oba jazyky) ----------
+  byEl("backup-btn").addEventListener("click", function () {
+    var blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "slovicka-zaloha-" + today() + ".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  });
+  byEl("restore-btn").addEventListener("click", function () { byEl("restore-file").click(); });
+  byEl("restore-file").addEventListener("change", function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var data = JSON.parse(reader.result);
+        if (data && (data.es || data.en)) {
+          var s = prazdnyStore();
+          ["es", "en"].forEach(function (k) {
+            if (data[k] && data[k].cards) s[k].cards = data[k].cards;
+          });
+          store = s;
+          save();
+          updateHomeSub();
+          updateLangHints();
+          alert("Pokrok obnoven ze zálohy.");
+        } else if (data && data.cards) {
+          // stará záloha (jen španělština)
+          var s2 = prazdnyStore();
+          migrujStareES(data.cards, s2.es.cards);
+          store = s2;
+          save();
+          updateHomeSub();
+          updateLangHints();
+          alert("Pokrok ze staré španělské zálohy obnoven.");
+        } else { alert("Tohle nevypadá jako záloha."); }
+      } catch (err) { alert("Soubor se nepodařilo přečíst."); }
+    };
+    reader.readAsText(file);
+  });
+
+  // ---------- Klávesnice (na počítači) ----------
+  document.addEventListener("keydown", function (e) {
+    if (!screens.study.classList.contains("active")) return;
+    if (!flipped && (e.key === " " || e.key === "Enter")) { e.preventDefault(); flip(); }
+    else if (flipped && (e.key === "ArrowRight" || e.key.toLowerCase() === "v")) answer(true);
+    else if (flipped && (e.key === "ArrowLeft" || e.key.toLowerCase() === "n")) answer(false);
+  });
+
+  // ---------- Start ----------
+  setLang("es");   // připraví výchozí jazyk, ale první obrazovka je výběr jazyka
+  updateLangHints();
+  show("lang");
+})();
+</script>
+</html>
