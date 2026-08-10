@@ -65,7 +65,13 @@ U angličtiny **vždycky vyplň výslovnost** — anglický pravopis se čte úp
 
 Podle designu z Google Stitch („Lumina Lexicon"): pergamenové pozadí, bílé kartičky, pálená oranžová,
 písmo Inter, základní velikost 18 px a všechny dotykové plochy aspoň 64 px vysoké. Žádné maskoty ani
-animace navíc. Aplikace umí i tmavý režim podle nastavení telefonu.
+animace navíc.
+
+**Aplikace je záměrně jen světlá.** Design tmavou variantu nemá, takže se appka nepřebarvuje ani na
+telefonu nastaveném na tmavý režim (`color-scheme: light`).
+
+Po každé změně souborů zvedni číslo verze v `sw.js` (`var CACHE = 'slovicka-vX'`), jinak telefon
+bude ze service workeru dál servírovat starou verzi.
 
 Písmo Inter se stahuje z internetu. Bez připojení se použije systémové písmo — appka funguje dál,
 jen vypadá o kousek jinak.

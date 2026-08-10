@@ -28,6 +28,10 @@
      papírový klid, teplé barvy, velká písmena, dotykové plochy 64 px.
      ================================================================ */
   :root {
+    /* Appka je záměrně jen světlá — design z Stitche tmavou variantu nemá.
+       color-scheme: light navíc zabrání prohlížeči, aby si na tmavém
+       telefonu sám přebarvoval pozadí a formulářové prvky. */
+    color-scheme: light;
     --bg: #f4f1ea;              /* pergamen */
     --card: #ffffff;
     --surface-2: #faf8f3;       /* horní lišta */
@@ -51,29 +55,6 @@
     --accent: #174f8f;
     --accent-soft: #dbe7f7;
     --accent-line: #b4c8e3;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #16130f;
-      --card: #221d18;
-      --surface-2: #1c1813;
-      --ink: #f4f1ea;
-      --muted: #b8a79f;
-      --accent: #ff8a5c;
-      --accent-soft: #3d2318;
-      --accent-line: #573527;
-      --green: #79dc8a;
-      --green-soft: #1b2c1f;
-      --red: #ff8f87;
-      --red-soft: #331b1a;
-      --line: #342e28;
-      --shadow: 0 12px 32px rgba(0,0,0,.45);
-    }
-    body[data-lang="en"] {
-      --accent: #82b7f2;
-      --accent-soft: #172538;
-      --accent-line: #2c4260;
-    }
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -193,10 +174,6 @@
     border-radius: var(--r-sm); padding: 14px 16px; margin-bottom: 16px;
     font-size: 16px; line-height: 1.45;
   }
-  @media (prefers-color-scheme: dark) {
-    #voice-warn { background: #2e2214; color: #ffd699; border-color: #5c451f; }
-  }
-
   .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
   /* Konec lekce */
@@ -207,7 +184,6 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 38px; font-weight: 700; margin: 0 auto 20px;
   }
-  @media (prefers-color-scheme: dark) { .check { color: #16130f; } }
   .stats {
     background: var(--card); border-radius: var(--r-card); box-shadow: var(--shadow);
     padding: 8px 24px 20px; margin-top: 24px; text-align: left;
