@@ -512,14 +512,34 @@
     });
 
     shuffle(due);
-    fresh.sort(function (a, b) { return a - b; }); // po pořadí (od nejfrekventovanějších)
+    // Nová slova bereme náhodně z okruhu nejfrekventovanějších neviděných slov:
+    // dávky jsou pestré (ne he/she a pak what/where), ale slovíčka zůstanou užitečná.
+    fresh.sort(function (a, b) { return a - b; }); // podle frekvence (nižší id = častější)
+    var pool = fresh.slice(0, Math.max(count * 3, 40));
+    shuffle(pool);
 
     var session = due.slice(0, count);
     if (session.length < count) {
-      session = session.concat(fresh.slice(0, count - session.length));
+      session = session.concat(pool.slice(0, count - session.length));
     }
     shuffle(session);
     return { ids: session };
+  }
+
+  // Kolik slov je teď k dispozici (dnes na řadě + nová), bez sestavování dávky.
+  function countAvailable(d, vynech) {
+    var c = cards();
+    var n = 0;
+    WORDS.forEach(function (w) {
+      if (vynech && vynech[w.id]) return;
+      var rec = c[w.id + ":" + d];
+      if (rec && rec.seen) {
+        if (isDue(rec.due)) n++;
+      } else {
+        n++; // nové slovo
+      }
+    });
+    return n;
   }
 
   // Kolik slov bude na řadě zítra (ve zvoleném směru).
@@ -649,7 +669,7 @@
   });
 
   function updateHomeSub() {
-    var avail = buildSession(dir, 9999).ids.length;
+    var avail = countAvailable(dir);
     var title = byEl("home-title");
     var sub = byEl("home-sub");
     if (!WORDS.length) {
@@ -792,7 +812,7 @@
 
   // ---------- Konec lekce ----------
   function finish() {
-    var zbyva = buildSession(dir, 9999, hotovoIds).ids.length;
+    var zbyva = countAvailable(dir, hotovoIds);
     var zitra = pocetNaZitra();
 
     if (totalDone === 0) {
