@@ -22,6 +22,28 @@ nebo chceme skutečný sync napříč zařízeními (větší práce, potřebuje
 
 ---
 
+## 🟢 Nápady z návrhu ve Stitchi („klidná slovíčka" / Lumina Lexicon) — *zatím neděláme*
+
+Stitch export (2026-08-10) měl pár obrazovek s funkcemi navíc, které appka nemá.
+Vizuál appka už má (je to stejný design system), tohle jsou jen nové **funkce**.
+Rozhodnuto: **zatím nic z toho neděláme**, jen si to schováváme.
+
+- **Rychlost čtení nahlas** — „Rychlost čtení nahlas" (pomalu / normálně). Teď je
+  rychlost TTS natvrdo `u.rate = 0.9` v `index.html`. Pro staršího uživatele
+  dává smysl to jít zpomalit. → nejsilnější kandidát, až se k tomu vrátíme.
+- **Samostatná obrazovka Nastavení + ⚙️ ikona** — dedikovaná stránka s
+  „Zálohovat pokrok", „Obnovit ze zálohy" a „O aplikaci". Uklidilo by to
+  zálohu/obnovu z domovské obrazovky. → nice-to-have.
+- **Volba „5 slov"** — Stitch má počty 5/10/20, my máme 10/20/30. Krátká
+  2minutová session by se hodila pro začátek. → levné přidat.
+- **Spodní navigace (Home / Session / Settings)** — pro 4 lineární obrazovky
+  zbytečné, jen vata z Stitche. → **přeskočit**.
+- **Tlačítko „Pokračovat" na výběru jazyka + X / ⋮ během lekce** — klik navíc
+  bez užitku (teď stačí ťuknout na jazyk). → **přeskočit**.
+- Pozn.: Stitch appku přejmenoval na „Lexis" — držíme se „Slovíčka pro tátu".
+
+---
+
 ## ✅ Hotovo
 
 - **PWA:** appka funguje v prohlížeči i po přidání na plochu (manifest +
