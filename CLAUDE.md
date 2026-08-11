@@ -10,3 +10,9 @@ Guidance for Claude Code when working in this repository. Read this at the start
 - **Starting fresh work:** create a new branch off `main` and stay on it. Do not assume a branch created in another chat exists or is relevant — each chat is a cold start and only sees the current git state.
 - **Never delete branches** unless the user explicitly asks.
 - **Commit or push only when the user asks.**
+
+## Research & internal materials (keep OUT of git)
+
+- Anything that is research, a rešerše, exploration notes, analysis, or internal material — **including anything Cowork generates** — goes into the `vyzkum/` folder, which is gitignored. Do not commit it.
+- Only application code and project guidance (like this CLAUDE.md) belong in git. Research does not.
+- When Cowork or Claude produces a research/analysis artifact, write it into `vyzkum/` (subfolders are fine), not into the repo root or a tracked path. It is personal to Evi and must never be committed.
