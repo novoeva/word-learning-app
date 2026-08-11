@@ -390,6 +390,11 @@
   var UMI_OD_BOXU = 4;   // od které krabičky se slovo počítá jako "umí" (krabička 4 = 3× dobře po sobě)
   var STORE_KEY = "slovicka_v2";
   var OLD_ES_KEY = "spanelstina_v1"; // pokrok z verze, kde byla jen španělština
+  // Aktivní klíč v localStorage. Anonymně = STORE_KEY; po přihlášení
+  // "slovicka_v2::<userId>", aby se pokrok dvou účtů na jednom prohlížeči nemíchal.
+  var storageKey = STORE_KEY;
+  var anonBootStore = null; // anonymní pokrok při startu (pro jednorázové převzetí)
+  var anonMigrated = false; // už jsme anonymní pokrok připojili k nějakému účtu?
 
   // ---------- Ukládání ----------
   // store = { es: { cards: { "<id>:<dir>": {box, due, seen} } }, en: { cards: {} } }
@@ -404,19 +409,25 @@
     });
   }
 
-  function load() {
+  // Přečte pokrok z konkrétního klíče (bez legacy migrace) do čistého store.
+  function loadFrom(key) {
     var s = prazdnyStore();
     try {
-      var raw = localStorage.getItem(STORE_KEY);
+      var raw = localStorage.getItem(key);
       if (raw) {
         var d = JSON.parse(raw);
         Object.keys(s).forEach(function (k) {
           if (d && d[k] && d[k].cards) s[k].cards = d[k].cards;
         });
-        return s;
       }
     } catch (e) {}
-    // migrace ze staré španělské verze (dir se jmenoval es2cz / cz2es)
+    return s;
+  }
+  // Anonymní úložiště: aktuální klíč, jinak jednorázová migrace staré ES verze.
+  // Legacy migrace patří jen sem, ne k účtům (jinak by se přelila do cizího účtu).
+  function load() {
+    if (localStorage.getItem(STORE_KEY) != null) return loadFrom(STORE_KEY);
+    var s = prazdnyStore();
     try {
       var old = localStorage.getItem(OLD_ES_KEY);
       if (old) {
@@ -427,12 +438,13 @@
     return s;
   }
   function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
+    try { localStorage.setItem(storageKey, JSON.stringify(store)); } catch (e) {}
     // Kromě lokálního uložení naplánuj i push do cloudu (když je přihlášeno).
     dirty = true;
     if (typeof syncPush === "function") syncPush();
   }
   var store = load();
+  anonBootStore = store; // co bylo v anonymním úložišti při startu
 
   function cards() { return store[langKey].cards; }
 
@@ -926,8 +938,10 @@
   // ---------- Přihlášení + synchronizace do cloudu (Supabase) ----------
   var sb = null;        // Supabase klient (nebo null v čistě lokálním režimu)
   var sbUser = null;    // přihlášený uživatel
+  var sbToken = null;   // access token (pro keepalive push při zavírání karty)
   var syncTimer = null; // debounce pro push
   var dirty = false;    // je lokální stav novější než cloud?
+  var pushRetries = 0;  // kolikrát po sobě push selhal (kvůli backoffu)
 
   function sbConfigured() {
     return !!(window.SB && SB.url && SB.anonKey &&
@@ -942,15 +956,17 @@
     } catch (e) { return null; }
   }
 
-  // Sloučení dvou stavů na úrovni jednotlivých karet: vyhrává novější (vyšší ts),
-  // při shodě vyšší krabička. Tak se neztratí pokrok udělaný na druhém zařízení.
+  // Sloučení dvou stavů na úrovni jednotlivých karet: vyhrává novější (vyšší ts).
+  // Tak se neztratí pokrok udělaný na druhém zařízení.
   function mergeCard(a, b) {
     if (!a) return b;
     if (!b) return a;
     var ta = a.ts || 0, tb = b.ts || 0;
     if (tb > ta) return b;
     if (ta > tb) return a;
-    return (b.box || 0) > (a.box || 0) ? b : a;
+    // Shodné/chybějící ts (staré karty bez razítka): ber bezpečněji NIŽŠÍ krabičku,
+    // ať omylem neoznačíme za "umí" slovo, které mohlo být mezitím shozeno.
+    return (b.box || 0) < (a.box || 0) ? b : a;
   }
   function mergeStores(a, b) {
     var out = prazdnyStore();
@@ -968,6 +984,32 @@
   }
   function refreshCounts() { updateHomeSub(); updateLangHints(); }
 
+  function hasAnyCards(s) {
+    return !!s && (Object.keys(s.es.cards).length + Object.keys(s.en.cards).length) > 0;
+  }
+  // Přepne lokální úložiště na konkrétní účet. Při úplně prvním přihlášení
+  // jakéhokoli účtu na tomhle prohlížeči jednorázově převezme anonymní pokrok
+  // (např. co táta nasbíral před zavedením účtů) a anonymní kopii smaže,
+  // ať se nepřelije do dalšího účtu, který se sem přihlásí.
+  function useUserStorage(userId) {
+    storageKey = STORE_KEY + "::" + userId;
+    var existed = localStorage.getItem(storageKey) != null;
+    var s = loadFrom(storageKey);
+    if (!existed && !anonMigrated && hasAnyCards(anonBootStore)) {
+      s = mergeStores(s, anonBootStore);
+      anonMigrated = true;
+      try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+      try { localStorage.removeItem(OLD_ES_KEY); } catch (e) {}
+    }
+    store = s;
+    try { localStorage.setItem(storageKey, JSON.stringify(store)); } catch (e) {}
+  }
+  // Po odhlášení zpět na anonymní úložiště, ať další účet nezdědí cizí pokrok.
+  function useAnonStorage() {
+    storageKey = STORE_KEY;
+    store = load();
+  }
+
   function syncPull() {
     if (!sb || !sbUser) return;
     sb.from("progress").select("data").eq("user_id", sbUser.id).maybeSingle()
@@ -975,7 +1017,7 @@
         if (!res || res.error) return;
         if (res.data && res.data.data) {
           store = mergeStores(store, res.data.data);
-          try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
+          try { localStorage.setItem(storageKey, JSON.stringify(store)); } catch (e) {}
           refreshCounts();
         }
         pushNow();   // sloučený stav pošli zpět, ať cloud i zařízení sedí
@@ -990,13 +1032,43 @@
       data: store,
       updated_at: new Date().toISOString()
     }).then(function (res) {
-      if (res && res.error) dirty = true; // zkusíme příště
-    }).catch(function () { dirty = true; });
+      if (res && res.error) { dirty = true; scheduleRetry(); }
+      else pushRetries = 0;
+    }).catch(function () { dirty = true; scheduleRetry(); });
+  }
+  // Po neúspěšném pushi zkus znovu s narůstajícím odstupem (3,6,9,12,15 s),
+  // pak už čekej na další uložení / návrat sítě. Bez toho by dirty stav visel.
+  function scheduleRetry() {
+    if (pushRetries >= 5) return;
+    pushRetries++;
+    if (syncTimer) clearTimeout(syncTimer);
+    syncTimer = setTimeout(pushNow, 3000 * pushRetries);
   }
   function syncPush() {
     if (!sb || !sbUser) return;
     if (syncTimer) clearTimeout(syncTimer);
     syncTimer = setTimeout(pushNow, 2000);
+  }
+  // Poslední jistota při zavírání/uspání karty: běžný fetch prohlížeč zruší,
+  // proto keepalive přímo na REST endpoint (přežije zánik stránky).
+  function flushKeepalive() {
+    if (!sb || !sbUser || !sbToken || !dirty) return;
+    dirty = false;
+    try {
+      fetch(SB.url + "/rest/v1/progress?on_conflict=user_id", {
+        method: "POST",
+        keepalive: true,
+        headers: {
+          "apikey": SB.anonKey,
+          "Authorization": "Bearer " + sbToken,
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates"
+        },
+        body: JSON.stringify([{
+          user_id: sbUser.id, data: store, updated_at: new Date().toISOString()
+        }])
+      }).catch(function () { dirty = true; });
+    } catch (e) { dirty = true; }
   }
 
   function showAccount(user) {
@@ -1013,13 +1085,26 @@
     }
   }
 
+  // Ukáže přihlašovací obrazovku s formulářem (a schová případné "Načítám…").
+  function showLoginForm() {
+    byEl("login-form").style.display = "";
+    var m = byEl("login-msg");
+    if (m.textContent === "Načítám…") { m.textContent = ""; m.style.display = "none"; }
+    show("login");
+  }
+
   function onAuth(session) {
     var user = session && session.user;
+    sbToken = (session && session.access_token) || null;
     if (user) {
       var novy = !sbUser || sbUser.id !== user.id;
       sbUser = user;
       showAccount(user);
-      if (novy) syncPull();                 // stáhni pokrok jen při skutečném přihlášení
+      if (novy) {
+        useUserStorage(user.id);  // přepni úložiště na tento účet (odděleně od ostatních)
+        refreshCounts();
+        syncPull();               // pak stáhni a slouči cloud
+      }
       var cur = currentScreen();
       if (cur === "login" || cur === null) { show("lang"); updateLangHints(); }
       // po návratu z magic linku ukliď token z adresy
@@ -1028,8 +1113,10 @@
       }
     } else {
       sbUser = null;
+      useAnonStorage();           // ať další účet nezdědí pokrok předchozího
+      refreshCounts();
       showAccount(null);
-      show("login");
+      showLoginForm();
     }
   }
 
@@ -1055,15 +1142,18 @@
   }
   byEl("login-send").addEventListener("click", sendMagicLink);
   byEl("login-email").addEventListener("keydown", function (e) {
-    if (e.key === "Enter") sendMagicLink();
+    // Enter respektuje zablokované tlačítko, ať se odkaz neposílá vícekrát (rate limit).
+    if (e.key === "Enter" && !byEl("login-send").disabled) sendMagicLink();
   });
   byEl("signout-btn").addEventListener("click", function () { if (sb) sb.auth.signOut(); });
 
   // dopsání nedoručeného pushe, když se vrátí síť nebo appka jde do pozadí
   window.addEventListener("online", function () { if (dirty) pushNow(); });
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "hidden" && dirty) pushNow();
+    if (document.visibilityState === "hidden") flushKeepalive();
   });
+  // pagehide je na iOS Safari spolehlivější než visibilitychange při zavírání
+  window.addEventListener("pagehide", flushKeepalive);
 
   // ---------- Start ----------
   setLang("es");   // připraví výchozí jazyk (data + barvy)
@@ -1074,10 +1164,14 @@
     // Supabase není nastavený → původní čistě lokální režim
     show("lang");
   } else {
-    // Než se rozhodne (přihlášen / ne), neblikáme obsahem — routuje onAuth().
+    // Než víme, jestli je někdo přihlášený, ukaž na login screenu "Načítám…"
+    // (žádná prázdná obrazovka). onAuth pak buď přejde do appky, nebo odkryje formulář.
+    byEl("login-form").style.display = "none";
+    var lm = byEl("login-msg"); lm.textContent = "Načítám…"; lm.style.display = "";
+    show("login");
     sb.auth.getSession().then(function (res) {
       onAuth(res && res.data && res.data.session);
-    }).catch(function () { show("login"); });
+    }).catch(function () { showLoginForm(); });
     sb.auth.onAuthStateChange(function (_event, session) { onAuth(session); });
   }
 })();
