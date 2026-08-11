@@ -29,3 +29,6 @@ yarn-error.log*
 
 # Systémové / ostatní
 Thumbs.db
+
+# Interní research (jen pro Evi, nepatří do gitu)
+vyzkum/
