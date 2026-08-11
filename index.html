@@ -110,6 +110,17 @@
   .btn.dunno { background: var(--red-soft);   color: var(--red);   border: 2px solid var(--red); }
   .linkbtn { background: none; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; font-size: 16px; padding: 10px 6px; }
 
+  /* Přihlašovací pole (magic link) */
+  .field {
+    width: 100%; font-family: inherit; font-size: 18px;
+    padding: 16px 18px; margin: 0 0 12px;
+    background: var(--card); color: var(--ink);
+    border: 2px solid var(--accent-line); border-radius: var(--r-btn);
+  }
+  .field:focus { outline: none; border-color: var(--accent); }
+  .login-msg { font-size: 16px; margin: 14px 0 0; }
+  .account-line { color: var(--muted); }
+
   /* Volba jazyka + volba směru */
   .dir { display: grid; gap: 12px; margin: 0 0 28px; }
   .dir button {
@@ -204,8 +215,28 @@
 
   <header class="topbar" id="topbar">Slovíčka</header>
 
+  <!-- (-1) PŘIHLÁŠENÍ (jen když je nastavený Supabase) -->
+  <section id="login" class="screen">
+    <h1>Vítej 👋</h1>
+    <p class="sub">Přihlas se e-mailem. Pošleme ti přihlašovací odkaz — žádné heslo si nemusíš pamatovat.</p>
+
+    <div id="login-form">
+      <input type="email" id="login-email" class="field" inputmode="email"
+             autocomplete="email" placeholder="tvůj@email.cz">
+      <button class="btn" id="login-send">Poslat přihlašovací odkaz</button>
+    </div>
+    <p class="sub login-msg" id="login-msg" style="display:none"></p>
+
+    <div class="screen-bottom">
+      <div class="footer-note">
+        Odkaz otevři na tomhle zařízení. Pak zůstaneš přihlášený<br>
+        a pokrok tě sleduje na všech zařízeních.
+      </div>
+    </div>
+  </section>
+
   <!-- 0) VÝBĚR JAZYKA -->
-  <section id="lang" class="screen active">
+  <section id="lang" class="screen">
     <h1>Dobrý den 👋</h1>
     <p class="sub">Co si dnes zopakujeme?</p>
 
@@ -225,8 +256,11 @@
     <div class="screen-bottom">
       <div class="footer-note">
         Pokrok v každém jazyce se počítá zvlášť.<br>
-        <button class="linkbtn" id="backup-btn">Zálohovat pokrok</button> ·
-        <button class="linkbtn" id="restore-btn">Obnovit ze zálohy</button>
+        <span class="account-line" id="account-line" style="display:none"></span>
+        <button class="linkbtn" id="signout-btn" hidden>Odhlásit se</button>
+        <!-- Ruční záloha zůstává skrytá jako nouzová páka (viz sync do cloudu). -->
+        <button class="linkbtn" id="backup-btn" hidden>Zálohovat pokrok</button>
+        <button class="linkbtn" id="restore-btn" hidden>Obnovit ze zálohy</button>
         <input type="file" id="restore-file" accept="application/json" hidden>
       </div>
     </div>
@@ -311,6 +345,9 @@
 
 <script src="slova-es.js"></script>
 <script src="slova-en.js"></script>
+<!-- Přihlášení + synchronizace pokroku do cloudu (Supabase). -->
+<script src="supabase-config.js"></script>
+<script src="vendor/supabase.js"></script>
 <script>
 (function () {
   "use strict";
@@ -391,6 +428,9 @@
   }
   function save() {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
+    // Kromě lokálního uložení naplánuj i push do cloudu (když je přihlášeno).
+    dirty = true;
+    if (typeof syncPush === "function") syncPush();
   }
   var store = load();
 
@@ -552,6 +592,7 @@
     if (correct) c.box = Math.min(5, c.box + 1);
     else c.box = 1; // padá zpět bez milosti
     c.due = addDays(today(), BOX_DAYS[c.box]);
+    c.ts = Date.now();  // čas poslední změny → slouží ke slučování mezi zařízeními
     cards()[key] = c;
     save();
   }
@@ -602,12 +643,19 @@
 
   // ---------- Obrazovky ----------
   var screens = {
-    lang: byEl("lang"), home: byEl("home"), study: byEl("study"), end: byEl("end")
+    login: byEl("login"), lang: byEl("lang"), home: byEl("home"), study: byEl("study"), end: byEl("end")
   };
   function show(name) {
     Object.keys(screens).forEach(function (k) { screens[k].classList.toggle("active", k === name); });
-    document.body.classList.toggle("show-topbar", name !== "lang");
+    document.body.classList.toggle("show-topbar", name !== "lang" && name !== "login");
     window.scrollTo(0, 0);
+  }
+  function currentScreen() {
+    var names = Object.keys(screens);
+    for (var i = 0; i < names.length; i++) {
+      if (screens[names[i]].classList.contains("active")) return names[i];
+    }
+    return null;
   }
 
   // ---------- Výběr jazyka ----------
@@ -875,10 +923,163 @@
     else if (flipped && (e.key === "ArrowLeft" || e.key.toLowerCase() === "n")) answer(false);
   });
 
+  // ---------- Přihlášení + synchronizace do cloudu (Supabase) ----------
+  var sb = null;        // Supabase klient (nebo null v čistě lokálním režimu)
+  var sbUser = null;    // přihlášený uživatel
+  var syncTimer = null; // debounce pro push
+  var dirty = false;    // je lokální stav novější než cloud?
+
+  function sbConfigured() {
+    return !!(window.SB && SB.url && SB.anonKey &&
+              String(SB.url).indexOf("http") === 0);
+  }
+  function initSupabase() {
+    if (!sbConfigured() || !window.supabase) return null;
+    try {
+      return window.supabase.createClient(SB.url, SB.anonKey, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+      });
+    } catch (e) { return null; }
+  }
+
+  // Sloučení dvou stavů na úrovni jednotlivých karet: vyhrává novější (vyšší ts),
+  // při shodě vyšší krabička. Tak se neztratí pokrok udělaný na druhém zařízení.
+  function mergeCard(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    var ta = a.ts || 0, tb = b.ts || 0;
+    if (tb > ta) return b;
+    if (ta > tb) return a;
+    return (b.box || 0) > (a.box || 0) ? b : a;
+  }
+  function mergeStores(a, b) {
+    var out = prazdnyStore();
+    ["es", "en"].forEach(function (k) {
+      var ca = (a && a[k] && a[k].cards) || {};
+      var cb = (b && b[k] && b[k].cards) || {};
+      var keys = {};
+      Object.keys(ca).forEach(function (x) { keys[x] = true; });
+      Object.keys(cb).forEach(function (x) { keys[x] = true; });
+      Object.keys(keys).forEach(function (key) {
+        out[k].cards[key] = mergeCard(ca[key], cb[key]);
+      });
+    });
+    return out;
+  }
+  function refreshCounts() { updateHomeSub(); updateLangHints(); }
+
+  function syncPull() {
+    if (!sb || !sbUser) return;
+    sb.from("progress").select("data").eq("user_id", sbUser.id).maybeSingle()
+      .then(function (res) {
+        if (!res || res.error) return;
+        if (res.data && res.data.data) {
+          store = mergeStores(store, res.data.data);
+          try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
+          refreshCounts();
+        }
+        pushNow();   // sloučený stav pošli zpět, ať cloud i zařízení sedí
+      })
+      .catch(function () {});
+  }
+  function pushNow() {
+    if (!sb || !sbUser) { dirty = true; return; }
+    dirty = false;
+    sb.from("progress").upsert({
+      user_id: sbUser.id,
+      data: store,
+      updated_at: new Date().toISOString()
+    }).then(function (res) {
+      if (res && res.error) dirty = true; // zkusíme příště
+    }).catch(function () { dirty = true; });
+  }
+  function syncPush() {
+    if (!sb || !sbUser) return;
+    if (syncTimer) clearTimeout(syncTimer);
+    syncTimer = setTimeout(pushNow, 2000);
+  }
+
+  function showAccount(user) {
+    var line = byEl("account-line");
+    var out = byEl("signout-btn");
+    if (user) {
+      line.textContent = "Přihlášen: " + (user.email || "") + " · ";
+      line.style.display = "";
+      out.hidden = false;
+    } else {
+      line.textContent = "";
+      line.style.display = "none";
+      out.hidden = true;
+    }
+  }
+
+  function onAuth(session) {
+    var user = session && session.user;
+    if (user) {
+      var novy = !sbUser || sbUser.id !== user.id;
+      sbUser = user;
+      showAccount(user);
+      if (novy) syncPull();                 // stáhni pokrok jen při skutečném přihlášení
+      var cur = currentScreen();
+      if (cur === "login" || cur === null) { show("lang"); updateLangHints(); }
+      // po návratu z magic linku ukliď token z adresy
+      if (location.hash.indexOf("access_token") > -1 || location.search.indexOf("code=") > -1) {
+        try { history.replaceState(null, "", location.pathname); } catch (e) {}
+      }
+    } else {
+      sbUser = null;
+      showAccount(null);
+      show("login");
+    }
+  }
+
+  function sendMagicLink() {
+    var email = (byEl("login-email").value || "").trim();
+    var msg = byEl("login-msg");
+    function say(t) { msg.textContent = t; msg.style.display = ""; }
+    if (!email || email.indexOf("@") < 1) { say("Zadej prosím platný e-mail."); return; }
+    if (!sb) { say("Přihlášení zatím není nastavené."); return; }
+    byEl("login-send").disabled = true;
+    say("Posílám odkaz…");
+    sb.auth.signInWithOtp({
+      email: email,
+      options: { emailRedirectTo: location.origin + location.pathname }
+    }).then(function (res) {
+      byEl("login-send").disabled = false;
+      if (res && res.error) say("Odkaz se nepodařilo odeslat. Zkus to prosím znovu.");
+      else say("Hotovo! Zkontroluj e-mail (" + email + ") a klikni na odkaz. Odkaz otevři na tomhle zařízení.");
+    }).catch(function () {
+      byEl("login-send").disabled = false;
+      say("Odkaz se nepodařilo odeslat. Zkus to prosím znovu.");
+    });
+  }
+  byEl("login-send").addEventListener("click", sendMagicLink);
+  byEl("login-email").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") sendMagicLink();
+  });
+  byEl("signout-btn").addEventListener("click", function () { if (sb) sb.auth.signOut(); });
+
+  // dopsání nedoručeného pushe, když se vrátí síť nebo appka jde do pozadí
+  window.addEventListener("online", function () { if (dirty) pushNow(); });
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden" && dirty) pushNow();
+  });
+
   // ---------- Start ----------
-  setLang("es");   // připraví výchozí jazyk, ale první obrazovka je výběr jazyka
+  setLang("es");   // připraví výchozí jazyk (data + barvy)
   updateLangHints();
-  show("lang");
+
+  sb = initSupabase();
+  if (!sb) {
+    // Supabase není nastavený → původní čistě lokální režim
+    show("lang");
+  } else {
+    // Než se rozhodne (přihlášen / ne), neblikáme obsahem — routuje onAuth().
+    sb.auth.getSession().then(function (res) {
+      onAuth(res && res.data && res.data.session);
+    }).catch(function () { show("login"); });
+    sb.auth.onAuthStateChange(function (_event, session) { onAuth(session); });
+  }
 })();
 </script>
 </html>

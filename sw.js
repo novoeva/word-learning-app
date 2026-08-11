@@ -1,12 +1,14 @@
 /* Service worker — appka funguje offline a po přidání na plochu
    je vyňatá ze 7denního mazání úložiště na iOSu.
    Když se něco změní v souborech, zvedni číslo verze v CACHE. */
-var CACHE = 'slovicka-v3';
+var CACHE = 'slovicka-v5';
 var ASSETS = [
   './',
   './index.html',
   './slova-es.js',
   './slova-en.js',
+  './supabase-config.js',
+  './vendor/supabase.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
@@ -51,8 +53,11 @@ self.addEventListener('fetch', function (e) {
 
   var isHTML = req.mode === 'navigate' ||
     (req.headers.get('accept') || '').indexOf('text/html') !== -1;
+  // Konfigurace Supabase (klíč/URL) se může změnit → network-first jako appka,
+  // ať se nová hodnota projeví bez zvedání verze CACHE. Offline padne na kopii.
+  var isConfig = url.pathname.indexOf('supabase-config.js') !== -1;
 
-  if (isHTML) {
+  if (isHTML || isConfig) {
     // Samotná appka: network-first — táta vždy dostane aktuální verzi,
     // offline se spadne na uloženou kopii. Tím se vyhneme tomu, že by mu
     // budoucí opravy nedorazily kvůli staré cache.
