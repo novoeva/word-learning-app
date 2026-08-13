@@ -44,6 +44,7 @@
     --green-soft: #e6f4ea;
     --red: #ba1a1a;
     --red-soft: #ffdad6;
+    --amber: #b5730a;           /* slovo odešlo nezvládnuté (progress) */
     --line: #e5e1d8;
     --shadow: 0 12px 32px rgba(58,40,30,.09);
     --r-card: 24px;
@@ -153,8 +154,20 @@
 
   /* Průběh lekce */
   .progress { text-align: center; color: var(--muted); font-size: 17px; margin: 0 0 10px; }
-  .progbar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; margin: 0 0 24px; }
-  .progbar > i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s ease; }
+  /* Segmenty = jedno slovo = jeden dílek. Lišta počítá ZVLÁDNUTÁ slova,
+     ne proběhlé kartičky: neznámé slovo dílek nevyplní, dokud ho táta nedá. */
+  .progsegs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; margin: 0 0 24px; }
+  .progsegs .seg { height: 8px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .progsegs .seg > i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 3px; transition: width .35s ease; }
+  .progsegs .seg.done   > i { width: 100%; }                        /* zvládnuté: plná terakota */
+  .progsegs .seg.repeat > i { width: 50%; }                         /* čeká na opakování: půlka = tvarový signál */
+  /* nezvládnuté: jantar + šrafování, ať se nepozná jen podle barvy (starší oči) */
+  .progsegs .seg.wrong  > i { width: 100%; background: repeating-linear-gradient(45deg, var(--amber) 0 3px, #7d4f06 3px 6px); }
+  /* Při 20/30 slovech jsou dílky moc tenké → hladký dvoubarevný pruh (zvládnuto / nezvládnuto). */
+  .progbar2 { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; display: flex; margin: 0 0 24px; }
+  .progbar2 > i { display: block; height: 100%; width: 0; transition: width .35s ease; }
+  .progbar2 .fill-done  { background: var(--accent); }
+  .progbar2 .fill-wrong { background: repeating-linear-gradient(45deg, var(--amber) 0 4px, #7d4f06 4px 8px); }
 
   /* Kartička */
   .card {
@@ -303,8 +316,8 @@
 
   <!-- 2+3) KARTIČKA -->
   <section id="study" class="screen">
-    <div class="progress" id="prog-text">1 z 10</div>
-    <div class="progbar"><i id="prog-fill"></i></div>
+    <div class="progress" id="prog-text">0 z 10</div>
+    <div class="progsegs" id="prog-segs"></div>
 
     <div id="voice-warn" style="display:none"></div>
 
@@ -471,7 +484,11 @@
   var sessionTotal = 0;  // plánovaný počet slov (neroste s opakováním)
   var idx = 0;
   var EXTRA_MAX = 2;      // kolikrát navíc se slovo v session zopakuje, když ho nevěděl
-  var extraRepeats = {};  // id -> kolikrát už bylo v této návštěvě přidáno navíc
+  var extraRepeats = {};  // "lang:id" -> kolikrát už bylo v této session přidáno navíc
+  var plannedIds = [];    // plánovaná slova session v pevném pořadí (jeden dílek na slovo)
+  var vyrizeno = {};      // id -> true: slovo je v liště hotové (Věděl, nebo došla opakování)
+  var nezvladnuto = {};   // id -> true: odešlo nezvládnuté (po vyčerpání opakování)
+  var segMode = true;     // dílky (≤15 slov) vs. hladký pruh (20/30 slov)
   var correctCount = 0;   // správně za celou návštěvu
   var totalDone = 0;      // odpovědí celkem za návštěvu (i po "Ještě 5 slov")
   var newCount = 0;       // kolik slov viděl dnes úplně poprvé
@@ -736,8 +753,7 @@
     totalDone = 0;
     newCount = 0;
     hotovoIds = {};
-    extraRepeats = {};   // nová návštěva → počítadlo opakování začíná od nuly
-    startSession(targetCount);
+    startSession(targetCount);   // extraRepeats/vyrizeno/… resetuje startSession
   });
 
   function startSession(count) {
@@ -745,6 +761,12 @@
     if (s.ids.length === 0) { finish(); return; }
     sessionIds = s.ids;
     sessionTotal = sessionIds.length;
+    plannedIds = sessionIds.slice();  // pevné pořadí dílků; sessionIds pak roste o opakování
+    vyrizeno = {};
+    nezvladnuto = {};
+    extraRepeats = {};                // opakování počítáme v rámci této dávky (i "Ještě 5 slov")
+    segMode = sessionTotal <= 15;     // víc slov → hladký pruh místo tenkých dílků
+    buildProgress();                  // strukturu postav jednou, pak jen měň třídy/šířky (kvůli animaci)
     idx = 0;
     show("study");
     renderFront();
@@ -778,13 +800,59 @@
     byEl("front-actions").style.display = "block";
     byEl("back-actions").style.display = "none";
 
-    // Opakování chybných slov přidává karty navíc; jmenovatel držíme na
-    // plánovaném počtu, ať "X z N" a lišta během lekce neposkakují.
-    var shown = Math.min(idx + 1, sessionTotal);
-    byEl("prog-text").textContent = shown + " z " + sessionTotal;
-    byEl("prog-fill").style.width = (Math.min(idx, sessionTotal) / sessionTotal * 100) + "%";
+    renderProgress();
 
     card.onclick = flip;
+  }
+
+  // Stav jednoho slova pro dílek: hotové / čeká na opakování / nezvládnuté / nic
+  function wordStav(id) {
+    if (vyrizeno[id]) return nezvladnuto[id] ? "wrong" : "done";
+    if (extraRepeats[langKey + ":" + id]) return "repeat";
+    return "";
+  }
+  function pocetZvladnutych() {
+    var n = 0;
+    for (var i = 0; i < plannedIds.length; i++) {
+      var id = plannedIds[i];
+      if (vyrizeno[id] && !nezvladnuto[id]) n++;
+    }
+    return n;
+  }
+  function pocetNezvladnutych() {
+    var n = 0;
+    for (var i = 0; i < plannedIds.length; i++) if (nezvladnuto[plannedIds[i]]) n++;
+    return n;
+  }
+  function pocetVyrizenych() { return pocetZvladnutych() + pocetNezvladnutych(); }
+
+  // Strukturu lišty postavíme jednou za session; renderProgress pak jen mění
+  // třídy/šířky u existujících prvků, ať CSS přechody fungují (ne innerHTML pokaždé).
+  function buildProgress() {
+    var host = byEl("prog-segs");
+    if (segMode) {
+      host.className = "progsegs";
+      var h = "";
+      for (var i = 0; i < sessionTotal; i++) h += "<div class='seg'><i></i></div>";
+      host.innerHTML = h;
+    } else {
+      host.className = "progbar2";
+      host.innerHTML = "<i class='fill-done'></i><i class='fill-wrong'></i>";
+    }
+  }
+  // Lišta = kolik slov je opravdu vyřízených, ne kolik kartiček proběhlo.
+  function renderProgress() {
+    byEl("prog-text").textContent = pocetVyrizenych() + " z " + sessionTotal;
+    var host = byEl("prog-segs");
+    if (segMode) {
+      var segs = host.children;
+      for (var i = 0; i < plannedIds.length && i < segs.length; i++) {
+        segs[i].className = "seg " + wordStav(plannedIds[i]);
+      }
+    } else {
+      host.children[0].style.width = (pocetZvladnutych() / sessionTotal * 100) + "%";
+      host.children[1].style.width = (pocetNezvladnutych() / sessionTotal * 100) + "%";
+    }
   }
 
   function renderBack() {
@@ -823,27 +891,40 @@
   byEl("dunno-btn").addEventListener("click", function () { answer(false); });
 
   function answer(correct) {
+    if (idx >= sessionIds.length) return;   // lekce už dojela (pojistka proti dvojímu kliknutí)
     var w = currentWord();
     if (correct) correctCount++;
     totalDone++;
     hotovoIds[w.id] = true;
     grade(w.id, dir, correct);
 
-    // Nevěděl → ukázat slovo ještě jednou v této session (max EXTRA_MAX× navíc),
-    // ať má šanci si ho zapamatovat. Vkládáme dál ve frontě, ne hned další kartu.
-    if (!correct) {
+    // Věděl → slovo je v liště hotové. Nevěděl → dílek se neposune a slovo se
+    // vrátí ještě jednou v této session (max EXTRA_MAX× navíc), ať má šanci si
+    // ho zapamatovat. Vkládáme dál ve frontě, ne hned další kartu.
+    if (correct) {
+      vyrizeno[w.id] = true;
+    } else {
       var ek = langKey + ":" + w.id;
       var pridano = extraRepeats[ek] || 0;
       if (pridano < EXTRA_MAX) {
         extraRepeats[ek] = pridano + 1;
         var kam = Math.min(sessionIds.length, idx + 3 + pridano);
         sessionIds.splice(kam, 0, w.id);
+      } else {
+        // došla opakování → slovo odchází nezvládnuté (SRS ho vrátí jindy)
+        vyrizeno[w.id] = true;
+        nezvladnuto[w.id] = true;
       }
     }
 
     idx++;
-    if (idx >= sessionIds.length) finish();
-    else renderFront();
+    if (idx >= sessionIds.length) {
+      renderProgress();                            // dopiš poslední dílek…
+      byEl("back-actions").style.display = "none"; // ať už nejde odpovědět dvakrát
+      setTimeout(finish, 500);                     // …a chvilku ukaž plnou lištu, než přijde konec
+    } else {
+      renderFront();
+    }
   }
 
   // ---------- Konec lekce ----------
