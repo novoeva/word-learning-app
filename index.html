@@ -57,6 +57,12 @@
     --accent-soft: #dbe7f7;
     --accent-line: #b4c8e3;
   }
+  /* Čeština (kurz pro anglicky mluvící) má svou barvu — česká červená */
+  body[data-lang="cz"] {
+    --accent: #8a1f2b;
+    --accent-soft: #f7d9dd;
+    --accent-line: #e0b4bb;
+  }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html { height: 100%; }
@@ -181,6 +187,7 @@
   .card .article { color: var(--accent); }
   .card .source { font-size: 18px; color: var(--muted); }
   .card .pron { color: var(--muted); font-size: 17px; }
+  .card .pron-note { font-size: 13px; opacity: .75; margin-top: -6px; }
   .card hr { border: none; border-top: 1px solid var(--accent-line); width: 55%; margin: 6px auto; }
   .card .sentence { font-size: 20px; font-weight: 600; line-height: 1.4; }
   .card .sentence .cz { display: block; color: var(--muted); font-size: 18px; font-weight: 400; margin-top: 6px; }
@@ -228,10 +235,29 @@
 
   <header class="topbar" id="topbar">Slovíčka</header>
 
+  <!-- (-2) VÝBĚR JAZYKA APLIKACE / CHOOSE INTERFACE LANGUAGE -->
+  <section id="uilang" class="screen">
+    <h1 id="uilang-title">Vyber jazyk</h1>
+    <p class="sub" id="uilang-sub">Choose your language</p>
+
+    <div class="dir" id="uilang-choice">
+      <button data-ui="cs">
+        <span class="flag">🇨🇿</span>
+        <span><span class="lbl">Čeština</span>
+        <span class="hint" id="uilang-cs-hint">Učím se španělsky nebo anglicky</span></span>
+      </button>
+      <button data-ui="en">
+        <span class="flag">🇬🇧</span>
+        <span><span class="lbl">English</span>
+        <span class="hint" id="uilang-en-hint">Learn Czech or Spanish</span></span>
+      </button>
+    </div>
+  </section>
+
   <!-- (-1) PŘIHLÁŠENÍ (jen když je nastavený Supabase) -->
   <section id="login" class="screen">
-    <h1>Vítej 👋</h1>
-    <p class="sub">Přihlas se e-mailem. Pošleme ti přihlašovací odkaz — žádné heslo si nemusíš pamatovat.</p>
+    <h1 id="login-title">Vítej 👋</h1>
+    <p class="sub" id="login-sub">Přihlas se e-mailem. Pošleme ti přihlašovací odkaz — žádné heslo si nemusíš pamatovat.</p>
 
     <div id="login-form">
       <input type="email" id="login-email" class="field" inputmode="email"
@@ -241,34 +267,24 @@
     <p class="sub login-msg" id="login-msg" style="display:none"></p>
 
     <div class="screen-bottom">
-      <div class="footer-note">
+      <div class="footer-note" id="login-footer">
         Odkaz otevři na tomhle zařízení. Pak zůstaneš přihlášený<br>
         a pokrok tě sleduje na všech zařízeních.
       </div>
     </div>
   </section>
 
-  <!-- 0) VÝBĚR JAZYKA -->
+  <!-- 0) VÝBĚR KURZU (podle jazyka aplikace) -->
   <section id="lang" class="screen">
-    <h1>Dobrý den 👋</h1>
-    <p class="sub">Co si dnes zopakujeme?</p>
+    <h1 id="lang-title">Dobrý den 👋</h1>
+    <p class="sub" id="lang-sub">Co si dnes zopakujeme?</p>
 
-    <div class="dir" id="lang-choice">
-      <button data-lang="es">
-        <span class="flag">🇪🇸</span>
-        <span><span class="lbl">Španělština</span>
-        <span class="hint" id="lang-hint-es">100 nejpoužívanějších slov</span></span>
-      </button>
-      <button data-lang="en">
-        <span class="flag">🇬🇧</span>
-        <span><span class="lbl">Angličtina</span>
-        <span class="hint" id="lang-hint-en">500 nejpoužívanějších slov</span></span>
-      </button>
-    </div>
+    <div class="dir" id="lang-choice"><!-- vyplní JS podle jazyka aplikace --></div>
 
     <div class="screen-bottom">
       <div class="footer-note">
-        Pokrok v každém jazyce se počítá zvlášť.<br>
+        <span id="lang-footer-text">Pokrok v každém jazyce se počítá zvlášť.</span><br>
+        <button class="linkbtn" id="change-ui-btn">🌐 Choose language / Vybrat jazyk</button><br>
         <span class="account-line" id="account-line" style="display:none"></span>
         <button class="linkbtn" id="signout-btn" hidden>Odhlásit se</button>
         <!-- Ruční záloha zůstává skrytá jako nouzová páka (viz sync do cloudu). -->
@@ -284,21 +300,21 @@
     <h1 id="home-title">Dnes tě čeká pár slov</h1>
     <p class="sub" id="home-sub"></p>
 
-    <div class="choice-label">Jak chceš procvičovat?</div>
+    <div class="choice-label" id="home-how-label">Jak chceš procvičovat?</div>
     <div class="dir" id="dir-choice">
       <button data-dir="f2cz">
         <span class="flag" id="dir-flag-1">🇪🇸→🇨🇿</span>
         <span><span class="lbl" id="dir-lbl-1">Vidím španělsky, hádám česky</span>
-        <span class="hint">snadnější</span></span>
+        <span class="hint" id="dir-hint-1">snadnější</span></span>
       </button>
       <button data-dir="cz2f">
         <span class="flag" id="dir-flag-2">🇨🇿→🇪🇸</span>
         <span><span class="lbl" id="dir-lbl-2">Vidím česky, hádám španělsky</span>
-        <span class="hint">těžší, ale užitečnější</span></span>
+        <span class="hint" id="dir-hint-2">těžší, ale užitečnější</span></span>
       </button>
     </div>
 
-    <div class="choice-label">Kolik toho dnes?</div>
+    <div class="choice-label" id="home-count-label">Kolik toho dnes?</div>
     <div class="count" id="count-choice">
       <button data-count="10" class="sel">10<span class="mins">5 min</span></button>
       <button data-count="20">20<span class="mins">10 min</span></button>
@@ -309,7 +325,7 @@
       <button class="btn" id="start-btn">Začít</button>
       <div class="footer-note">
         <button class="linkbtn" id="change-lang-btn">← Změnit jazyk</button><br>
-        Pokrok se ukládá v tomto prohlížeči na tomto zařízení.
+        <span id="home-footer">Pokrok se ukládá v tomto prohlížeči na tomto zařízení.</span>
       </div>
     </div>
   </section>
@@ -342,8 +358,8 @@
       <p class="sub" id="end-text" style="margin-bottom:0"></p>
 
       <div class="stats" id="end-stats">
-        <div class="row"><span>Nová slova</span><b id="stat-new">0</b></div>
-        <div class="row"><span>Úspěšnost</span><b id="stat-rate">0 %</b></div>
+        <div class="row"><span id="end-stat-new-label">Nová slova</span><b id="stat-new">0</b></div>
+        <div class="row"><span id="end-stat-rate-label">Úspěšnost</span><b id="stat-rate">0 %</b></div>
         <div class="note" id="stat-tomorrow"></div>
       </div>
     </div>
@@ -365,38 +381,260 @@
 (function () {
   "use strict";
 
-  // ---------- Nastavení jazyků ----------
-  // Přidání dalšího jazyka = jeden nový soubor slova-XX.js + jeden záznam sem.
-  var LANGS = {
-    es: {
-      nazev: "Španělština",
-      vlajka: "🇪🇸",
-      prid: "španělsky",           // "Vidím ___"
-      tag: "Španělsky",            // popisek na kartičce
-      hlasKod: "es",               // předpona kódu hlasu
-      hlasPreferovany: "es-es",
-      hlasZaloha: "es-ES",
-      hlasNazev: "španělský hlas",
-      hlasNavod: "např. iPhone/iPad: Nastavení → Přístupnost → Mluvený obsah → Hlasy → Španělština",
-      data: window.SLOVA_ES || [],
-      poleSlovo: "es",
-      poleVeta: "veta_es"
+  // ================================================================
+  //  DVĚ NEZÁVISLÉ OSY
+  //  1) Jazyk aplikace (uiLang): "cs" | "en" — vybírá se jako první,
+  //     řídí všechny texty rozhraní A jazyk, do kterého se překládá
+  //     (rodný jazyk = strana s nápovědou/odpovědí).
+  //  2) Kurz (langKey/course): který jazyk se učím. Nabídka kurzů
+  //     závisí na jazyku aplikace.
+  //
+  //  Rodný jazyk podle uiLang:  cs → pole cz / veta_cz;  en → en / veta_en
+  // ================================================================
+
+  // ---------- Texty rozhraní ----------
+  // Vše, co uživatel čte, je tady. Šablony (funkce) řeší skloňování/množné číslo.
+  function slovCS(n) { return n === 1 ? "slovo" : (n >= 2 && n <= 4 ? "slova" : "slov"); }
+  function cekaCS(n) { return (n >= 2 && n <= 4) ? "čekají" : "čeká"; }
+  function wEN(n) { return n === 1 ? "word" : "words"; }
+
+  var T = {
+    cs: {
+      topbar: "Slovíčka",
+      uiTitle: "Vyber jazyk",
+      uiSub: "V jakém jazyce chceš appku používat?",
+      uiCsHint: "Učím se španělsky nebo anglicky",
+      uiEnHint: "Learn Czech or Spanish",
+      loginTitle: "Vítej 👋",
+      loginSub: "Přihlas se e-mailem. Pošleme ti přihlašovací odkaz — žádné heslo si nemusíš pamatovat.",
+      loginPlaceholder: "tvůj@email.cz",
+      loginSend: "Poslat přihlašovací odkaz",
+      loginFooter: "Odkaz otevři na tomhle zařízení. Pak zůstaneš přihlášený<br>a pokrok tě sleduje na všech zařízeních.",
+      loginSending: "Posílám odkaz…",
+      loginBadEmail: "Zadej prosím platný e-mail.",
+      loginNoAuth: "Přihlášení zatím není nastavené.",
+      loginErr: "Odkaz se nepodařilo odeslat. Zkus to prosím znovu.",
+      loginSent: function (email) { return "Hotovo! Zkontroluj e-mail (" + email + ") a klikni na odkaz. Odkaz otevři na tomhle zařízení."; },
+      loading: "Načítám…",
+      langTitle: "Dobrý den 👋",
+      langSub: "Co si dnes zopakujeme?",
+      langFooter: "Pokrok v každém jazyce se počítá zvlášť.",
+      changeUiLang: "🌐 Vybrat jazyk / Choose language",
+      signout: "Odhlásit se",
+      backup: "Zálohovat pokrok",
+      restore: "Obnovit ze zálohy",
+      accountPrefix: "Přihlášen: ",
+      howPractice: "Jak chceš procvičovat?",
+      howMany: "Kolik toho dnes?",
+      hintEasier: "snadnější",
+      hintHarder: "těžší, ale užitečnější",
+      start: "Začít",
+      changeLang: "← Změnit jazyk",
+      homeFooter: "Pokrok se ukládá v tomto prohlížeči na tomto zařízení.",
+      flip: "Otočit",
+      know: "Věděl jsem",
+      dunno: "Nevěděl jsem",
+      playWord: "🔊 Přehrát",
+      playSentence: "🔊 Přehrát větu",
+      statNew: "Nová slova",
+      statRate: "Úspěšnost",
+      close: "Zavřít",
+      errTitle: "Něco se pokazilo",
+      errSub: "Slovíčka pro tento jazyk se nepodařilo načíst.",
+      dirRecognize: function (tok) { return "Vidím " + tok + ", hádám česky"; },
+      dirRecall: function (tok) { return "Vidím česky, hádám " + tok; },
+      progress: function (a, b) { return a + " z " + b; },
+      homeTitle: function (n) { return "Dnes tě " + cekaCS(n) + " " + n + " " + slovCS(n); },
+      homeDoneTitle: "Na dnešek hotovo 👍",
+      homeDoneSub: "Všechno máš zopakované. Přijď zase zítra.",
+      homeSub: function (name) { return name + " · pokrok se ukládá sám."; },
+      doneTitle: "Hotovo!",
+      endText: function (total, correct) { return "Dnes jsi zvládl " + total + " " + slovCS(total) + ", " + correct + " správně."; },
+      tomorrow: function (n) {
+        return n > 0
+          ? "Přijď zase zítra a uč se dál. 💪"
+          : "Zítra tě nečeká nic. Klidně si přidej nová slova.";
+      },
+      more: function (n) { return "Ještě " + n + " " + slovCS(n); },
+      langHintKnown: function (u, c) { return u + " z " + c + " slov už umíš"; },
+      langHintNew: function (c) { return c + " nejpoužívanějších slov"; },
+      langHintFail: "Slovíčka se nepodařilo načíst.",
+      czPronNote: "",
+      voiceWarn: function (name, help) {
+        return "⚠️ Na tomto zařízení není nainstalovaný <b>" + name +
+          "</b>, takže se slova nemusí číst správně. Přidat se dá v nastavení systému (" + help + ").";
+      },
+      restoreOk: "Pokrok obnoven ze zálohy.",
+      restoreOldEs: "Pokrok ze staré španělské zálohy obnoven.",
+      restoreNot: "Tohle nevypadá jako záloha.",
+      restoreErr: "Soubor se nepodařilo přečíst."
     },
     en: {
-      nazev: "Angličtina",
-      vlajka: "🇬🇧",
-      prid: "anglicky",
-      tag: "Anglicky",
-      hlasKod: "en",
-      hlasPreferovany: "en-gb",
-      hlasZaloha: "en-GB",
-      hlasNazev: "anglický hlas",
-      hlasNavod: "např. iPhone/iPad: Nastavení → Přístupnost → Mluvený obsah → Hlasy → Angličtina",
-      data: window.SLOVA_EN || [],
-      poleSlovo: "en",
-      poleVeta: "veta_en"
+      topbar: "Vocabulary",
+      uiTitle: "Choose your language",
+      uiSub: "Which language do you want to use the app in?",
+      uiCsHint: "Učím se španělsky nebo anglicky",
+      uiEnHint: "Learn Czech or Spanish",
+      loginTitle: "Welcome 👋",
+      loginSub: "Sign in with your email. We'll send you a login link — no password to remember.",
+      loginPlaceholder: "your@email.com",
+      loginSend: "Send login link",
+      loginFooter: "Open the link on this device. Then you'll stay signed in<br>and your progress follows you across devices.",
+      loginSending: "Sending link…",
+      loginBadEmail: "Please enter a valid email.",
+      loginNoAuth: "Sign-in isn't set up yet.",
+      loginErr: "Couldn't send the link. Please try again.",
+      loginSent: function (email) { return "Done! Check your email (" + email + ") and click the link. Open it on this device."; },
+      loading: "Loading…",
+      langTitle: "Hello 👋",
+      langSub: "What shall we review today?",
+      langFooter: "Progress is tracked separately for each language.",
+      changeUiLang: "🌐 Choose language / Vybrat jazyk",
+      signout: "Sign out",
+      backup: "Back up progress",
+      restore: "Restore from backup",
+      accountPrefix: "Signed in: ",
+      howPractice: "How do you want to practice?",
+      howMany: "How much today?",
+      hintEasier: "easier",
+      hintHarder: "harder, but more useful",
+      start: "Start",
+      changeLang: "← Change language",
+      homeFooter: "Progress is saved in this browser on this device.",
+      flip: "Flip",
+      know: "I knew it",
+      dunno: "I didn't know",
+      playWord: "🔊 Play",
+      playSentence: "🔊 Play sentence",
+      statNew: "New words",
+      statRate: "Accuracy",
+      close: "Close",
+      errTitle: "Something went wrong",
+      errSub: "Couldn't load words for this language.",
+      dirRecognize: function (tok) { return "See " + tok + ", guess English"; },
+      dirRecall: function (tok) { return "See English, guess " + tok; },
+      progress: function (a, b) { return a + " of " + b; },
+      homeTitle: function (n) { return n + " " + wEN(n) + " for today"; },
+      homeDoneTitle: "All done for today 👍",
+      homeDoneSub: "You've reviewed everything. Come back tomorrow.",
+      homeSub: function (name) { return name + " · progress saves automatically."; },
+      doneTitle: "Done!",
+      endText: function (total, correct) { return "Today you did " + total + " " + wEN(total) + ", " + correct + " correct."; },
+      tomorrow: function (n) {
+        return n > 0
+          ? "Come back tomorrow and keep learning. 💪"
+          : "Nothing due tomorrow. Feel free to add new words.";
+      },
+      more: function (n) { return n + " more " + wEN(n); },
+      langHintKnown: function (u, c) { return u + " of " + c + " words learned"; },
+      langHintNew: function (c) { return c + " most common words"; },
+      langHintFail: "Couldn't load the words.",
+      czPronNote: "rough guide · tap 🔊 for the real sound",
+      voiceWarn: function (name, help) {
+        return "⚠️ This device doesn't have the <b>" + name +
+          "</b> installed, so words may not be read correctly. You can add it in your system settings (" + help + ").";
+      },
+      restoreOk: "Progress restored from backup.",
+      restoreOldEs: "Progress restored from the old Spanish backup.",
+      restoreNot: "This doesn't look like a backup.",
+      restoreErr: "Couldn't read the file."
     }
   };
+
+  // ---------- Rodný jazyk (strana s nápovědou/odpovědí) podle uiLang ----------
+  var NATIVE = {
+    cs: { word: "cz", sentence: "veta_cz", flag: "🇨🇿", tag: "Česky" },
+    en: { word: "en", sentence: "veta_en", flag: "🇬🇧", tag: "English" }
+  };
+
+  // ---------- Kurzy (klíč = klíč v úložišti) ----------
+  // Přidání kurzu = jeden nový záznam sem (+ případně nový slova-XX.js).
+  // pron: pole s výslovností podle jazyka aplikace; "__czPron" = spočítat z pravopisu.
+  var COURSES = {
+    es: {
+      flag: "🇪🇸",
+      name: { cs: "Španělština", en: "Spanish" },
+      tag: { cs: "Španělsky", en: "Spanish" },
+      adv: "španělsky",                 // pro české popisky směru
+      data: window.SLOVA_ES || [],
+      targetWord: "es", targetSentence: "veta_es",
+      hasArticle: true,
+      pron: { cs: "vyslovnost", en: "vyslovnost_en" },
+      voice: {
+        kod: "es", pref: "es-es", fallback: "es-ES",
+        name: { cs: "španělský hlas", en: "Spanish voice" },
+        help: {
+          cs: "např. iPhone/iPad: Nastavení → Přístupnost → Mluvený obsah → Hlasy → Španělština",
+          en: "e.g. iPhone/iPad: Settings → Accessibility → Spoken Content → Voices → Spanish"
+        }
+      }
+    },
+    en: {
+      flag: "🇬🇧",
+      name: { cs: "Angličtina", en: "English" },
+      tag: { cs: "Anglicky", en: "English" },
+      adv: "anglicky",
+      data: window.SLOVA_EN || [],
+      targetWord: "en", targetSentence: "veta_en",
+      hasArticle: false,
+      pron: { cs: "vyslovnost", en: null },
+      voice: {
+        kod: "en", pref: "en-gb", fallback: "en-GB",
+        name: { cs: "anglický hlas", en: "English voice" },
+        help: {
+          cs: "např. iPhone/iPad: Nastavení → Přístupnost → Mluvený obsah → Hlasy → Angličtina",
+          en: "e.g. iPhone/iPad: Settings → Accessibility → Spoken Content → Voices → English"
+        }
+      }
+    },
+    // Kurz češtiny pro anglicky mluvící. Používá STEJNÝ soubor slova-en.js,
+    // jen se čte druhá strana (cz / veta_cz). Výslovnost se počítá z pravopisu.
+    cz: {
+      flag: "🇨🇿",
+      name: { cs: "Čeština", en: "Czech" },
+      tag: { cs: "Česky", en: "Czech" },
+      adv: "česky",
+      data: window.SLOVA_EN || [],
+      targetWord: "cz", targetSentence: "veta_cz",
+      hasArticle: false,
+      pron: { cs: null, en: "__czPron" },
+      voice: {
+        kod: "cs", pref: "cs-cz", fallback: "cs-CZ",
+        name: { cs: "český hlas", en: "Czech voice" },
+        help: {
+          cs: "např. iPhone/iPad: Nastavení → Přístupnost → Mluvený obsah → Hlasy → Čeština",
+          en: "e.g. iPhone/iPad: Settings → Accessibility → Spoken Content → Voices → Czech"
+        }
+      }
+    }
+  };
+
+  // Nabídka kurzů podle jazyka aplikace (rodný jazyk se nikdy neučí).
+  var MENU = { cs: ["es", "en"], en: ["cz", "es"] };
+
+  // ---------- Výslovnost češtiny pro anglicky mluvící ----------
+  // Přibližný přepis z pravopisu (čeština se čte skoro jak se píše).
+  // Není dokonalý — 🔊 (TTS) je zdroj pravdy pro zvuk.
+  function czPron(word) {
+    var s = String(word).toLowerCase().replace(/ch/g, ""); // ochrana digrafu ch
+    var map = {
+      "": "kh", "ř": "rzh", "č": "ch", "š": "sh", "ž": "zh",
+      "c": "ts", "j": "y", "ě": "ye", "ň": "ny", "ď": "dy", "ť": "ty",
+      "á": "ah", "é": "eh", "í": "ee", "ý": "ee",
+      "ó": "oh", "ú": "oo", "ů": "oo", "y": "i", "u": "oo"
+    };
+    var out = "";
+    for (var i = 0; i < s.length; i++) {
+      var c = s[i];
+      out += map.hasOwnProperty(c) ? map[c] : c;
+    }
+    return out;
+  }
+
+  // ---------- Jazyk aplikace ----------
+  var UI_KEY = "ui_lang";
+  var uiLang = localStorage.getItem(UI_KEY) === "en" ? "en" : "cs"; // default čeština
+  function defaultCourse() { return MENU[uiLang][0]; }
 
   // ---------- Leitnerův systém ----------
   var BOX_DAYS = { 1: 1, 2: 3, 3: 7, 4: 14, 5: 30 }; // za kolik dní se slovo vrátí
@@ -410,8 +648,9 @@
   var anonMigrated = false; // už jsme anonymní pokrok připojili k nějakému účtu?
 
   // ---------- Ukládání ----------
-  // store = { es: { cards: { "<id>:<dir>": {box, due, seen} } }, en: { cards: {} } }
-  function prazdnyStore() { return { es: { cards: {} }, en: { cards: {} } }; }
+  // store = { es: {...}, en: {...}, cz: {...} }, každý { cards: { "<id>:<dir>": {box, due, seen} } }
+  // cz = kurz češtiny pro anglicky mluvící (nový klíč; es/en zůstávají beze změny).
+  function prazdnyStore() { return { es: { cards: {} }, en: { cards: {} }, cz: { cards: {} } }; }
 
   // Přemapuje klíče staré španělské verze (dir es2cz/cz2es → f2cz/cz2f)
   // a nasype je do cílových es-karet. Používá load() i obnova ze zálohy.
@@ -475,9 +714,13 @@
 
   // ---------- Stav běhu ----------
   var langKey = "es";
-  var cfg = LANGS.es;
+  var course = COURSES.es;
   var WORDS = [];
   var byId = {};
+  // Směr (dir): "f2cz" = vidím cizí/cílový, hádám rodný (poznávání, snadnější);
+  //             "cz2f" = vidím rodný, hádám cílový (vybavování, těžší).
+  // Kódy jsou historické (dřív jen čeština) — necháváme je jako neprůhledné klíče,
+  // aby se zachoval už uložený pokrok. "cz" v názvu ≠ nutně čeština.
   var dir = "f2cz";
   var targetCount = 10;
   var sessionIds = [];
@@ -497,25 +740,45 @@
 
   function byEl(id) { return document.getElementById(id); }
 
-  function setLang(k) {
+  function setCourse(k) {
     langKey = k;
-    cfg = LANGS[k];
-    WORDS = cfg.data;
+    course = COURSES[k];
+    WORDS = course.data;
     byId = {};
     WORDS.forEach(function (w) { byId[w.id] = w; });
-    document.body.setAttribute("data-lang", k);
+    document.body.setAttribute("data-lang", k); // barva podle kurzu (es/en/cz)
     pickVoice();
-
-    byEl("dir-flag-1").textContent = cfg.vlajka + "→🇨🇿";
-    byEl("dir-flag-2").textContent = "🇨🇿→" + cfg.vlajka;
-    byEl("dir-lbl-1").textContent = "Vidím " + cfg.prid + ", hádám česky";
-    byEl("dir-lbl-2").textContent = "Vidím česky, hádám " + cfg.prid;
+    applyDirLabels();
     setDir("f2cz");
   }
 
-  // pomocné čtení polí podle jazyka
-  function slovo(w) { return w[cfg.poleSlovo]; }
-  function veta(w) { return w[cfg.poleVeta]; }
+  // Popisky směru se skládají z kurzu + jazyka aplikace (rodný jazyk).
+  function applyDirLabels() {
+    var t = T[uiLang], nat = NATIVE[uiLang];
+    var tok = uiLang === "cs" ? course.adv : course.name.en; // token do popisku
+    byEl("dir-flag-1").textContent = course.flag + "→" + nat.flag;
+    byEl("dir-flag-2").textContent = nat.flag + "→" + course.flag;
+    byEl("dir-lbl-1").textContent = t.dirRecognize(tok);
+    byEl("dir-lbl-2").textContent = t.dirRecall(tok);
+  }
+
+  // ---------- Čtení polí: cílový jazyk (kurz) vs. rodný jazyk (uiLang) ----------
+  function tw(w) { return w[course.targetWord]; }              // cílové slovo
+  function tsent(w) { return w[course.targetSentence]; }        // cílová věta
+  function nw(w) { return w[NATIVE[uiLang].word]; }             // rodné slovo (nápověda)
+  function nsent(w) { return w[NATIVE[uiLang].sentence]; }      // rodná věta
+  function pronOf(w) {
+    var p = course.pron[uiLang];
+    if (!p) return "";
+    if (p === "__czPron") return czPron(tw(w));
+    return w[p] || "";
+  }
+  function targetText(w) { return (course.hasArticle && w.clen ? w.clen + " " : "") + tw(w); }
+  function targetHtml(w) {
+    if (course.hasArticle && w.clen)
+      return "<span class='article'>" + escapeHtml(w.clen) + "</span> " + escapeHtml(tw(w));
+    return escapeHtml(tw(w));
+  }
 
   // ---------- Kolik slov už umí ----------
   // Slovo se počítá jako "umím", když je aspoň v jednom směru v krabičce 4
@@ -528,15 +791,34 @@
     return Object.keys(umi).length;
   }
   function updateLangHints() {
-    ["es", "en"].forEach(function (k) {
-      var celkem = (LANGS[k].data || []).length;
+    var t = T[uiLang];
+    MENU[uiLang].forEach(function (k) {
+      var celkem = (COURSES[k].data || []).length;
       var el = byEl("lang-hint-" + k);
-      if (!celkem) { el.textContent = "Slovíčka se nepodařilo načíst."; return; }
+      if (!el) return;
+      if (!celkem) { el.textContent = t.langHintFail; return; }
       var umi = umiPocet(k);
-      el.textContent = umi > 0
-        ? umi + " z " + celkem + " slov už umíš"
-        : celkem + " nejpoužívanějších slov";
+      el.textContent = umi > 0 ? t.langHintKnown(umi, celkem) : t.langHintNew(celkem);
     });
+  }
+
+  // Postaví nabídku kurzů podle jazyka aplikace (rodný jazyk se nikdy neučí).
+  function buildLangMenu() {
+    var host = byEl("lang-choice");
+    host.innerHTML = "";
+    MENU[uiLang].forEach(function (k) {
+      var c = COURSES[k];
+      var b = document.createElement("button");
+      b.setAttribute("data-lang", k);
+      b.innerHTML = "<span class='flag'>" + c.flag + "</span>" +
+        "<span><span class='lbl'>" + escapeHtml(c.name[uiLang]) + "</span>" +
+        "<span class='hint' id='lang-hint-" + k + "'></span></span>";
+      b.addEventListener("click", function () {
+        setCourse(k); show("home"); updateHomeSub();
+      });
+      host.appendChild(b);
+    });
+    updateLangHints();
   }
 
   // ---------- Sestavení dnešní dávky ----------
@@ -632,8 +914,8 @@
     voice = null;
     if (!("speechSynthesis" in window)) { updateVoiceWarning(); return; }
     var vs = window.speechSynthesis.getVoices();
-    var kod = cfg.hlasKod;
-    var pref = cfg.hlasPreferovany;
+    var kod = course.voice.kod;
+    var pref = course.voice.pref;
     voice = vs.filter(function (v) {
       return v.lang && v.lang.toLowerCase().indexOf(kod) === 0;
     }).sort(function (a, b) {
@@ -645,12 +927,10 @@
   }
   function updateVoiceWarning() {
     var el = byEl("voice-warn");
-    if (!el) return;
+    if (!el || !course) return;
     var loaded = ("speechSynthesis" in window) && window.speechSynthesis.getVoices().length > 0;
     if (loaded && !voice) {
-      el.innerHTML = "⚠️ Na tomto zařízení není nainstalovaný <b>" + cfg.hlasNazev +
-        "</b>, takže se slova nemusí číst správně. Přidat se dá v nastavení systému (" +
-        cfg.hlasNavod + ").";
+      el.innerHTML = T[uiLang].voiceWarn(course.voice.name[uiLang], course.voice.help[uiLang]);
       el.style.display = "block";
     } else {
       el.style.display = "none";
@@ -664,7 +944,7 @@
     if (!voice) pickVoice(); // hlasy se mohly načíst až teď (asynchronně)
     window.speechSynthesis.cancel();
     var u = new SpeechSynthesisUtterance(text);
-    u.lang = voice ? voice.lang : cfg.hlasZaloha;
+    u.lang = voice ? voice.lang : course.voice.fallback;
     if (voice) u.voice = voice;
     u.rate = 0.9;
     window.speechSynthesis.speak(u);
@@ -672,11 +952,12 @@
 
   // ---------- Obrazovky ----------
   var screens = {
-    login: byEl("login"), lang: byEl("lang"), home: byEl("home"), study: byEl("study"), end: byEl("end")
+    uilang: byEl("uilang"), login: byEl("login"), lang: byEl("lang"),
+    home: byEl("home"), study: byEl("study"), end: byEl("end")
   };
   function show(name) {
     Object.keys(screens).forEach(function (k) { screens[k].classList.toggle("active", k === name); });
-    document.body.classList.toggle("show-topbar", name !== "lang" && name !== "login");
+    document.body.classList.toggle("show-topbar", name !== "lang" && name !== "login" && name !== "uilang");
     window.scrollTo(0, 0);
   }
   function currentScreen() {
@@ -687,14 +968,22 @@
     return null;
   }
 
-  // ---------- Výběr jazyka ----------
-  document.querySelectorAll("#lang-choice button").forEach(function (b) {
-    b.addEventListener("click", function () {
-      setLang(b.getAttribute("data-lang"));
-      show("home");
-      updateHomeSub();
-    });
+  // ---------- Výběr jazyka aplikace ----------
+  function chooseUiLang(lang) {
+    uiLang = (lang === "en") ? "en" : "cs";
+    try { localStorage.setItem(UI_KEY, uiLang); } catch (e) {}
+    applyUiText();
+    setCourse(defaultCourse());   // kurz z předchozího jazyka nemusí být v nové nabídce
+    buildLangMenu();
+    show("lang");
+  }
+  document.querySelectorAll("#uilang-choice button").forEach(function (b) {
+    b.addEventListener("click", function () { chooseUiLang(b.getAttribute("data-ui")); });
   });
+  byEl("change-ui-btn").addEventListener("click", function () { show("uilang"); });
+
+  // ---------- Výběr kurzu ----------
+  // (tlačítka staví buildLangMenu(); posluchače přidává tam)
   byEl("change-lang-btn").addEventListener("click", function () {
     updateLangHints();
     show("lang");
@@ -722,31 +1011,24 @@
   });
 
   function updateHomeSub() {
+    var t = T[uiLang];
     var avail = countAvailable(dir);
     var title = byEl("home-title");
     var sub = byEl("home-sub");
     if (!WORDS.length) {
-      title.textContent = "Něco se pokazilo";
-      sub.textContent = "Slovíčka pro tento jazyk se nepodařilo načíst.";
+      title.textContent = t.errTitle;
+      sub.textContent = t.errSub;
       return;
     }
     if (avail === 0) {
-      title.textContent = "Na dnešek hotovo 👍";
-      sub.textContent = "Všechno máš zopakované. Přijď zase zítra.";
+      title.textContent = t.homeDoneTitle;
+      sub.textContent = t.homeDoneSub;
     } else {
       var n = Math.min(targetCount, avail);
-      title.textContent = "Dnes tě " + cekaSloveso(n) + " " + pocetSlov(n);
-      sub.textContent = cfg.nazev + " · pokrok se ukládá sám.";
+      title.textContent = t.homeTitle(n);
+      sub.textContent = t.homeSub(course.name[uiLang]);
     }
   }
-  function slov(n) {
-    if (n === 1) return "slovo";
-    if (n >= 2 && n <= 4) return "slova";
-    return "slov";
-  }
-  // shoda slovesa: 1 slovo čeká, 3 slova čekají, 8 slov čeká
-  function cekaSloveso(n) { return (n >= 2 && n <= 4) ? "čekají" : "čeká"; }
-  function pocetSlov(n) { return n + " " + slov(n); }
 
   byEl("start-btn").addEventListener("click", function () {
     correctCount = 0;
@@ -775,27 +1057,34 @@
   // ---------- Vykreslení kartičky ----------
   function currentWord() { return byId[sessionIds[idx]]; }
 
-  function sCizi(w) {
-    // slovo v cizím jazyce, u španělských podstatných jmen i se členem
-    if (w.clen) return "<span class='article'>" + escapeHtml(w.clen) + "</span> " + escapeHtml(slovo(w));
-    return escapeHtml(slovo(w));
-  }
-  function ciziText(w) { return (w.clen ? w.clen + " " : "") + slovo(w); }
   function dlouhe(t) { return String(t).length > 14 ? " long" : ""; }
+  function isCzPron() { return course.pron[uiLang] === "__czPron"; }
+
+  // Blok výslovnosti (u češtiny pro angličtináře i s poznámkou, že jde o přibližný přepis).
+  function pronBlock(w, withNote) {
+    var pr = pronOf(w);
+    if (!pr) return "";
+    var note = (withNote && isCzPron() && T[uiLang].czPronNote)
+      ? "<div class='pron pron-note'>" + escapeHtml(T[uiLang].czPronNote) + "</div>" : "";
+    return "<div class='pron'>[ " + escapeHtml(pr) + " ]</div>" + note;
+  }
 
   function renderFront() {
     flipped = false;
     var w = currentWord();
+    var t = T[uiLang];
     var card = byEl("card");
-    var jeCizi = dir === "f2cz";
-    var text = jeCizi ? ciziText(w) : w.cz;
+    var showTarget = dir === "f2cz";                 // vidím cílový jazyk
+    var text = showTarget ? targetText(w) : nw(w);
     var html = "";
-    html += "<div class='tag'>" + (jeCizi ? cfg.tag : "Česky") + "</div>";
-    html += "<div class='word" + dlouhe(text) + "'>" + (jeCizi ? sCizi(w) : escapeHtml(w.cz)) + "</div>";
-    if (jeCizi && w.vyslovnost) html += "<div class='pron'>[ " + escapeHtml(w.vyslovnost) + " ]</div>";
-    if (jeCizi) html += "<button class='speak' id='speak-front'>🔊 Přehrát</button>";
+    html += "<div class='tag'>" + escapeHtml(showTarget ? course.tag[uiLang] : NATIVE[uiLang].tag) + "</div>";
+    html += "<div class='word" + dlouhe(text) + "'>" + (showTarget ? targetHtml(w) : escapeHtml(nw(w))) + "</div>";
+    if (showTarget) {
+      html += pronBlock(w, true);
+      html += "<button class='speak' id='speak-front'>" + t.playWord + "</button>";
+    }
     card.innerHTML = html;
-    if (jeCizi) byEl("speak-front").addEventListener("click", function (e) { e.stopPropagation(); speak(slovo(w)); });
+    if (showTarget) byEl("speak-front").addEventListener("click", function (e) { e.stopPropagation(); speak(tw(w)); });
 
     byEl("front-actions").style.display = "block";
     byEl("back-actions").style.display = "none";
@@ -842,7 +1131,7 @@
   }
   // Lišta = kolik slov je opravdu vyřízených, ne kolik kartiček proběhlo.
   function renderProgress() {
-    byEl("prog-text").textContent = pocetVyrizenych() + " z " + sessionTotal;
+    byEl("prog-text").textContent = T[uiLang].progress(pocetVyrizenych(), sessionTotal);
     var host = byEl("prog-segs");
     if (segMode) {
       var segs = host.children;
@@ -858,30 +1147,31 @@
   function renderBack() {
     flipped = true;
     var w = currentWord();
+    var t = T[uiLang];
     var card = byEl("card");
-    var jeCizi = dir === "f2cz";
+    var showTarget = dir === "f2cz";
     // nahoře malým písmem to, co viděl na přední straně; velkým je odpověď
-    var maleHtml  = jeCizi ? sCizi(w) : escapeHtml(w.cz);
-    var velkeHtml = jeCizi ? escapeHtml(w.cz) : sCizi(w);
-    var velkeText = jeCizi ? w.cz : ciziText(w);
+    var smallHtml = showTarget ? targetHtml(w) : escapeHtml(nw(w));
+    var bigHtml   = showTarget ? escapeHtml(nw(w)) : targetHtml(w);
+    var bigText   = showTarget ? nw(w) : targetText(w);
 
     var html = "";
-    html += "<div class='source'>" + maleHtml + "</div>";
-    html += "<div class='word" + dlouhe(velkeText) + "'>" + velkeHtml + "</div>";
-    if (w.vyslovnost) html += "<div class='pron'>[ " + escapeHtml(w.vyslovnost) + " ]</div>";
+    html += "<div class='source'>" + smallHtml + "</div>";
+    html += "<div class='word" + dlouhe(bigText) + "'>" + bigHtml + "</div>";
+    html += pronBlock(w, false);   // výslovnost cílového slova
     html += "<hr>";
-    html += "<div class='sentence'>" + escapeHtml(veta(w)) +
-            "<span class='cz'>" + escapeHtml(w.veta_cz) + "</span></div>";
-    html += "<button class='speak' id='speak-back'>🔊 Přehrát větu</button>";
+    html += "<div class='sentence'>" + escapeHtml(tsent(w)) +
+            "<span class='cz'>" + escapeHtml(nsent(w)) + "</span></div>";
+    html += "<button class='speak' id='speak-back'>" + t.playSentence + "</button>";
     card.innerHTML = html;
     card.onclick = null;
-    byEl("speak-back").addEventListener("click", function (e) { e.stopPropagation(); speak(veta(w)); });
+    byEl("speak-back").addEventListener("click", function (e) { e.stopPropagation(); speak(tsent(w)); });
 
     byEl("front-actions").style.display = "none";
     byEl("back-actions").style.display = "grid";
 
-    // po otočení automaticky přehraj slovo, ať slyší výslovnost
-    speak(slovo(w));
+    // po otočení automaticky přehraj cílové slovo, ať slyší výslovnost
+    speak(tw(w));
   }
 
   function flip() { if (!flipped) renderBack(); }
@@ -932,28 +1222,26 @@
     var zbyva = countAvailable(dir, hotovoIds);
     var zitra = pocetNaZitra();
 
+    var t = T[uiLang];
     if (totalDone === 0) {
-      byEl("end-title").textContent = "Na dnešek hotovo 👍";
-      byEl("end-text").textContent = "Všechno máš zopakované. Přijď zase zítra.";
+      byEl("end-title").textContent = t.homeDoneTitle;
+      byEl("end-text").textContent = t.homeDoneSub;
       byEl("end-stats").style.display = "none";
     } else {
       var rate = Math.round(correctCount / totalDone * 100);
-      byEl("end-title").textContent = "Hotovo!";
-      byEl("end-text").textContent = "Dnes jsi zvládl " + totalDone + " " + slov(totalDone) +
-        ", " + correctCount + " správně.";
+      byEl("end-title").textContent = t.doneTitle;
+      byEl("end-text").textContent = t.endText(totalDone, correctCount);
       byEl("end-stats").style.display = "block";
       byEl("stat-new").textContent = newCount;
       byEl("stat-rate").textContent = rate + " %";
       byEl("stat-rate").className = rate >= 60 ? "good" : "";
-      byEl("stat-tomorrow").textContent = zitra > 0
-        ? "Přijď zase zítra a uč se dál. 💪"
-        : "Zítra tě nečeká nic. Klidně si přidej nová slova.";
+      byEl("stat-tomorrow").textContent = t.tomorrow(zitra);
     }
 
     var more = byEl("more-btn");
     if (zbyva > 0) {
       var kolik = Math.min(5, zbyva);
-      more.textContent = "Ještě " + kolik + " " + slov(kolik);
+      more.textContent = t.more(kolik);
       more.style.display = "block";
       more.onclick = function () { startSession(kolik); };
     } else {
@@ -967,7 +1255,7 @@
 
   byEl("again-btn").addEventListener("click", function () { show("home"); updateHomeSub(); });
 
-  // ---------- Záloha / obnova (obsahuje oba jazyky) ----------
+  // ---------- Záloha / obnova (obsahuje všechny kurzy) ----------
   byEl("backup-btn").addEventListener("click", function () {
     var blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
     var a = document.createElement("a");
@@ -983,16 +1271,16 @@
     reader.onload = function () {
       try {
         var data = JSON.parse(reader.result);
-        if (data && (data.es || data.en)) {
+        if (data && (data.es || data.en || data.cz)) {
           var s = prazdnyStore();
-          ["es", "en"].forEach(function (k) {
+          ["es", "en", "cz"].forEach(function (k) {
             if (data[k] && data[k].cards) s[k].cards = data[k].cards;
           });
           store = s;
           save();
           updateHomeSub();
           updateLangHints();
-          alert("Pokrok obnoven ze zálohy.");
+          alert(T[uiLang].restoreOk);
         } else if (data && data.cards) {
           // stará záloha (jen španělština)
           var s2 = prazdnyStore();
@@ -1001,9 +1289,9 @@
           save();
           updateHomeSub();
           updateLangHints();
-          alert("Pokrok ze staré španělské zálohy obnoven.");
-        } else { alert("Tohle nevypadá jako záloha."); }
-      } catch (err) { alert("Soubor se nepodařilo přečíst."); }
+          alert(T[uiLang].restoreOldEs);
+        } else { alert(T[uiLang].restoreNot); }
+      } catch (err) { alert(T[uiLang].restoreErr); }
     };
     reader.readAsText(file);
   });
@@ -1051,7 +1339,7 @@
   }
   function mergeStores(a, b) {
     var out = prazdnyStore();
-    ["es", "en"].forEach(function (k) {
+    ["es", "en", "cz"].forEach(function (k) {
       var ca = (a && a[k] && a[k].cards) || {};
       var cb = (b && b[k] && b[k].cards) || {};
       var keys = {};
@@ -1066,7 +1354,8 @@
   function refreshCounts() { updateHomeSub(); updateLangHints(); }
 
   function hasAnyCards(s) {
-    return !!s && (Object.keys(s.es.cards).length + Object.keys(s.en.cards).length) > 0;
+    return !!s && (Object.keys(s.es.cards).length + Object.keys(s.en.cards).length +
+                   Object.keys(s.cz.cards).length) > 0;
   }
   // Přepne lokální úložiště na konkrétní účet. Při úplně prvním přihlášení
   // jakéhokoli účtu na tomhle prohlížeči jednorázově převezme anonymní pokrok
@@ -1156,7 +1445,7 @@
     var line = byEl("account-line");
     var out = byEl("signout-btn");
     if (user) {
-      line.textContent = "Přihlášen: " + (user.email || "") + " · ";
+      line.textContent = T[uiLang].accountPrefix + (user.email || "") + " · ";
       line.style.display = "";
       out.hidden = false;
     } else {
@@ -1170,7 +1459,9 @@
   function showLoginForm() {
     byEl("login-form").style.display = "";
     var m = byEl("login-msg");
-    if (m.textContent === "Načítám…") { m.textContent = ""; m.style.display = "none"; }
+    if (m.textContent === T.cs.loading || m.textContent === T.en.loading) {
+      m.textContent = ""; m.style.display = "none";
+    }
     show("login");
   }
 
@@ -1187,7 +1478,7 @@
         syncPull();               // pak stáhni a slouči cloud
       }
       var cur = currentScreen();
-      if (cur === "login" || cur === null) { show("lang"); updateLangHints(); }
+      if (cur === "login" || cur === null) landing();
       // po návratu z magic linku ukliď token z adresy
       if (location.hash.indexOf("access_token") > -1 || location.search.indexOf("code=") > -1) {
         try { history.replaceState(null, "", location.pathname); } catch (e) {}
@@ -1202,23 +1493,24 @@
   }
 
   function sendMagicLink() {
+    var t = T[uiLang];
     var email = (byEl("login-email").value || "").trim();
     var msg = byEl("login-msg");
-    function say(t) { msg.textContent = t; msg.style.display = ""; }
-    if (!email || email.indexOf("@") < 1) { say("Zadej prosím platný e-mail."); return; }
-    if (!sb) { say("Přihlášení zatím není nastavené."); return; }
+    function say(s) { msg.textContent = s; msg.style.display = ""; }
+    if (!email || email.indexOf("@") < 1) { say(t.loginBadEmail); return; }
+    if (!sb) { say(t.loginNoAuth); return; }
     byEl("login-send").disabled = true;
-    say("Posílám odkaz…");
+    say(t.loginSending);
     sb.auth.signInWithOtp({
       email: email,
       options: { emailRedirectTo: location.origin + location.pathname }
     }).then(function (res) {
       byEl("login-send").disabled = false;
-      if (res && res.error) say("Odkaz se nepodařilo odeslat. Zkus to prosím znovu.");
-      else say("Hotovo! Zkontroluj e-mail (" + email + ") a klikni na odkaz. Odkaz otevři na tomhle zařízení.");
+      if (res && res.error) say(t.loginErr);
+      else say(t.loginSent(email));
     }).catch(function () {
       byEl("login-send").disabled = false;
-      say("Odkaz se nepodařilo odeslat. Zkus to prosím znovu.");
+      say(t.loginErr);
     });
   }
   byEl("login-send").addEventListener("click", sendMagicLink);
@@ -1236,19 +1528,78 @@
   // pagehide je na iOS Safari spolehlivější než visibilitychange při zavírání
   window.addEventListener("pagehide", flushKeepalive);
 
+  // ---------- Nastavení textů rozhraní podle jazyka aplikace ----------
+  function applyUiText() {
+    var t = T[uiLang];
+    document.documentElement.lang = uiLang;
+    function setTxt(id, s) { var el = byEl(id); if (el) el.textContent = s; }
+    function setHtml(id, s) { var el = byEl(id); if (el) el.innerHTML = s; }
+    setTxt("topbar", t.topbar);
+    // výběr jazyka aplikace
+    setTxt("uilang-title", t.uiTitle);
+    setTxt("uilang-sub", t.uiSub);
+    setTxt("uilang-cs-hint", t.uiCsHint);
+    setTxt("uilang-en-hint", t.uiEnHint);
+    // přihlášení
+    setTxt("login-title", t.loginTitle);
+    setTxt("login-sub", t.loginSub);
+    var em = byEl("login-email"); if (em) em.placeholder = t.loginPlaceholder;
+    setTxt("login-send", t.loginSend);
+    setHtml("login-footer", t.loginFooter);
+    // výběr kurzu
+    setTxt("lang-title", t.langTitle);
+    setTxt("lang-sub", t.langSub);
+    setTxt("lang-footer-text", t.langFooter);
+    setTxt("change-ui-btn", t.changeUiLang);
+    setTxt("signout-btn", t.signout);
+    setTxt("backup-btn", t.backup);
+    setTxt("restore-btn", t.restore);
+    // nastavení lekce
+    setTxt("home-how-label", t.howPractice);
+    setTxt("home-count-label", t.howMany);
+    setTxt("dir-hint-1", t.hintEasier);
+    setTxt("dir-hint-2", t.hintHarder);
+    setTxt("start-btn", t.start);
+    setTxt("change-lang-btn", t.changeLang);
+    setTxt("home-footer", t.homeFooter);
+    // kartička / konec lekce
+    setTxt("flip-btn", t.flip);
+    setTxt("dunno-btn", t.dunno);
+    setTxt("know-btn", t.know);
+    setTxt("end-stat-new-label", t.statNew);
+    setTxt("end-stat-rate-label", t.statRate);
+    setTxt("again-btn", t.close);
+    // dynamické části závislé na aktuálním kurzu
+    if (course) applyDirLabels();
+    updateVoiceWarning();
+    showAccount(sbUser);
+  }
+
+  // Kam po startu / přihlášení: první návštěva → vybrat jazyk aplikace,
+  // jinak rovnou na výběr kurzu (volba jazyka je zapamatovaná).
+  function landing() {
+    if (localStorage.getItem(UI_KEY) == null) {
+      show("uilang");
+    } else {
+      buildLangMenu();
+      show("lang");
+    }
+  }
+
   // ---------- Start ----------
-  setLang("es");   // připraví výchozí jazyk (data + barvy)
-  updateLangHints();
+  setCourse(defaultCourse());   // připraví výchozí kurz (data + barvy + hlas)
+  applyUiText();                // texty rozhraní podle uloženého jazyka (default cs)
+  buildLangMenu();
 
   sb = initSupabase();
   if (!sb) {
     // Supabase není nastavený → původní čistě lokální režim
-    show("lang");
+    landing();
   } else {
     // Než víme, jestli je někdo přihlášený, ukaž na login screenu "Načítám…"
     // (žádná prázdná obrazovka). onAuth pak buď přejde do appky, nebo odkryje formulář.
     byEl("login-form").style.display = "none";
-    var lm = byEl("login-msg"); lm.textContent = "Načítám…"; lm.style.display = "";
+    var lm = byEl("login-msg"); lm.textContent = T[uiLang].loading; lm.style.display = "";
     show("login");
     sb.auth.getSession().then(function (res) {
       onAuth(res && res.data && res.data.session);

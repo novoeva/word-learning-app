@@ -1,7 +1,7 @@
 /* Service worker — appka funguje offline a po přidání na plochu
    je vyňatá ze 7denního mazání úložiště na iOSu.
    Když se něco změní v souborech, zvedni číslo verze v CACHE. */
-var CACHE = 'slovicka-v6';
+var CACHE = 'slovicka-v7';
 var ASSETS = [
   './',
   './index.html',

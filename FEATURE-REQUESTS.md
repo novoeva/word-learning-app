@@ -46,6 +46,11 @@ Rozhodnuto: **zatím nic z toho neděláme**, jen si to schováváme.
 
 ## ✅ Hotovo
 
+- **Anglická verze aplikace (jazyk aplikace cs / en).** Nový první krok „vyber jazyk"
+  (čeština výchozí, volba se pamatuje). Pod English se nabízí kurz **Czech** (stejná data
+  jako angličtina, jen obráceně; výslovnost češtiny se dopočítá z pravopisu) a **Spanish**
+  (`slova-es.js` doplněn o `en` / `veta_en` / `vyslovnost_en` pro všech 100 slov). Celé
+  rozhraní je lokalizované; pokrok se drží zvlášť pro es / en / cz.
 - **PWA:** appka funguje v prohlížeči i po přidání na plochu (manifest +
   service worker + apple meta tagy). Na ploše je navíc vyňatá ze 7denního
   mazání úložiště na iOSu.

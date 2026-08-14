@@ -1,4 +1,7 @@
 // 500 nejpoužívanějších ANGLICKÝCH slov pro tátu.
+// Tento soubor slouží dvěma kurzům: (1) čeština → angličtina (učí se táta) a
+// (2) angličtina → čeština (kurz pro anglicky mluvící). U kurzu češtiny se čte
+// druhá strana (cz / veta_cz); výslovnost češtiny se dopočítá z pravopisu v index.html.
 // Editace: přidej/uprav záznam v tomto poli a ulož. Nic víc není potřeba.
 // Pole:
 //   id          – jednoznačné číslo (neopakuj). Pořadí = pořadí učení, od nejčastějších.

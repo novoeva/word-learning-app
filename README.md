@@ -1,19 +1,26 @@
 # Slovíčka pro tátu — v1
 
-Jednoduchá webová aplikace na opakování slovíček. **Nejdřív si vybere jazyk**, pak směr a počet slov na dnešek.
+Jednoduchá webová aplikace na opakování slovíček. **Nejdřív se vybere jazyk aplikace**
+(čeština / English), pak kurz, směr a počet slov na dnešek.
 
-- 🇪🇸 **Španělština** — 100 nejpoužívanějších slov
-- 🇬🇧 **Angličtina** — 500 nejpoužívanějších slov
+- 🇨🇿 **Čeština** (výchozí) — táta se učí:
+  - 🇪🇸 **Španělština** — 100 nejpoužívanějších slov
+  - 🇬🇧 **Angličtina** — 500 nejpoužívanějších slov
+- 🇬🇧 **English** — anglicky mluvící se učí:
+  - 🇨🇿 **Czech** — 500 nejpoužívanějších slov (stejná data jako angličtina, jen obráceně)
+  - 🇪🇸 **Spanish** — 100 nejpoužívanějších slov
 
-Kartičky, oba směry, Leitnerův systém opakování, výslovnost, pokrok uložený v prohlížeči.
+Volba jazyka aplikace se pamatuje; změnit ji jde odkazem „🌐 Vybrat jazyk / Choose language"
+na obrazovce výběru kurzu. Kartičky, oba směry, Leitnerův systém opakování, výslovnost,
+pokrok uložený v prohlížeči (v každém kurzu zvlášť).
 
 ## Soubory
 
 | Soubor | Co to je |
 |---|---|
 | `index.html` | Celá aplikace (vzhled + logika). Nic se neinstaluje. |
-| `slova-es.js` | 100 španělských slov. **Slova se přidávají editací tohoto souboru.** |
-| `slova-en.js` | 500 anglických slov. Nahoře je legenda k fonetickému přepisu. |
+| `slova-es.js` | 100 španělských slov. Kromě češtiny obsahuje i anglickou nápovědu (`en`, `veta_en`, `vyslovnost_en`) pro kurz Spanish. **Slova se přidávají editací tohoto souboru.** |
+| `slova-en.js` | 500 anglických slov. Slouží kurzu angličtiny (pro tátu) i kurzu češtiny (pro anglicky mluvící). Nahoře je legenda k fonetickému přepisu. |
 | `manifest.json`, `sw.js`, `icon-*.png`, `apple-touch-icon.png` | PWA — aby to šlo přidat na plochu jako appku a fungovalo offline. |
 | `FEATURE-REQUESTS.md` | Nápady a věci k dořešení. |
 | `Projektovy-dokument.md` | Zadání / specifikace. |
@@ -38,16 +45,25 @@ Otevři `slova-es.js` nebo `slova-en.js`, zkopíruj jeden záznam, uprav a dej m
 
 U angličtiny **vždycky vyplň výslovnost** — anglický pravopis se čte úplně jinak, než se píše. Legenda k přepisu je v hlavičce souboru.
 
-## Jak přidat další jazyk
+## Jak přidat další kurz
 
-1. Vytvoř `slova-XX.js` se `window.SLOVA_XX = [...]` (stejná struktura, pole se slovem pojmenuj `xx` a větu `veta_xx`).
+1. Vytvoř `slova-XX.js` se `window.SLOVA_XX = [...]` (pole se slovem pojmenuj `xx`, větu `veta_xx`;
+   nezapomeň na nápovědu v jazyce aplikace — `cz`/`veta_cz` a/nebo `en`/`veta_en`).
 2. Přidej `<script src="slova-XX.js"></script>` do `index.html`.
-3. Přidej záznam do objektu `LANGS` v `index.html` (název, vlajka, kód hlasu, názvy polí).
-4. Přidej tlačítko do `#lang-choice`.
+3. Přidej záznam do objektu `COURSES` v `index.html` (vlajka, `name`/`tag` pro cs+en,
+   `targetWord`/`targetSentence`, pole `pron` a `voice`).
+4. Zařaď kurz do `MENU` pro příslušný jazyk aplikace (`cs` a/nebo `en`).
+5. Přidej klíč kurzu do prázdného úložiště (`prazdnyStore`, `mergeStores`, `hasAnyCards`, obnova ze zálohy).
+
+Nabídku tlačítek staví `buildLangMenu()` automaticky z `MENU` — ručně se nic do HTML nepřidává.
 
 ## Co appka umí
 
-- **Výběr jazyka jako první krok.** Aplikace k němu i mění barvu (španělština terakotová, angličtina modrá).
+- **Výběr jazyka aplikace jako úplně první krok** (čeština / English). Čeština je výchozí;
+  volba se pamatuje a mění nabídku kurzů (čeština → španělština/angličtina, English → čeština/španělština).
+- **Výběr kurzu.** Aplikace k němu i mění barvu (španělština terakotová, angličtina modrá, čeština červená).
+- **Kurz češtiny pro anglicky mluvící** používá stejná data jako angličtina, jen z druhé strany;
+  výslovnost češtiny se dopočítá z pravopisu (přibližně, 🔊 je zdroj pravdy).
 - **U každého jazyka je vidět pokrok** — „34 z 100 slov už umíš". Slovo se počítá jako umíš, když se dostane aspoň v jednom směru do krabičky 4 a výš (tj. třikrát po sobě správně, vrací se nejdřív za 14 dní).
 - Výběr směru: cizí→🇨🇿 (poznávání) nebo 🇨🇿→cizí (vybavování). Směry se v opakování počítají zvlášť.
 - Výběr denní dávky: 10 / 20 / 30 slovíček, s odhadem času.
