@@ -401,8 +401,8 @@
   var T = {
     cs: {
       topbar: "Slovíčka",
-      uiTitle: "Vyber jazyk",
-      uiSub: "V jakém jazyce chceš appku používat?",
+      uiTitle: "Vyber jazyk · Choose language",
+      uiSub: "Nastavení jde kdykoliv změnit. · You can change this later.",
       uiCsHint: "Učím se španělsky nebo anglicky",
       uiEnHint: "Learn Czech or Spanish",
       loginTitle: "Vítej 👋",
@@ -471,8 +471,8 @@
     },
     en: {
       topbar: "Vocabulary",
-      uiTitle: "Choose your language",
-      uiSub: "Which language do you want to use the app in?",
+      uiTitle: "Vyber jazyk · Choose language",
+      uiSub: "Nastavení jde kdykoliv změnit. · You can change this later.",
       uiCsHint: "Učím se španělsky nebo anglicky",
       uiEnHint: "Learn Czech or Spanish",
       loginTitle: "Welcome 👋",
@@ -975,7 +975,10 @@
     applyUiText();
     setCourse(defaultCourse());   // kurz z předchozího jazyka nemusí být v nové nabídce
     buildLangMenu();
-    show("lang");
+    // Přihlášení (pokud běží Supabase a ještě nejsme přihlášení) až po volbě jazyka,
+    // ať anglicky mluvící nenarazí nejdřív na český login.
+    if (sb && !sbUser) showLoginForm();
+    else show("lang");
   }
   document.querySelectorAll("#uilang-choice button").forEach(function (b) {
     b.addEventListener("click", function () { chooseUiLang(b.getAttribute("data-ui")); });
@@ -1488,7 +1491,9 @@
       useAnonStorage();           // ať další účet nezdědí pokrok předchozího
       refreshCounts();
       showAccount(null);
-      showLoginForm();
+      // Nejdřív vybrat jazyk aplikace (i před přihlášením), pak teprve login.
+      if (localStorage.getItem(UI_KEY) == null) show("uilang");
+      else showLoginForm();
     }
   }
 
@@ -1595,9 +1600,17 @@
   if (!sb) {
     // Supabase není nastavený → původní čistě lokální režim
     landing();
+  } else if (localStorage.getItem(UI_KEY) == null) {
+    // První návštěva: nejdřív výběr jazyka aplikace, teprve pak login.
+    // getSession stejně běží na pozadí; onAuth respektuje „jazyk ještě nevybrán".
+    show("uilang");
+    sb.auth.getSession().then(function (res) {
+      onAuth(res && res.data && res.data.session);
+    }).catch(function () {});
+    sb.auth.onAuthStateChange(function (_event, session) { onAuth(session); });
   } else {
-    // Než víme, jestli je někdo přihlášený, ukaž na login screenu "Načítám…"
-    // (žádná prázdná obrazovka). onAuth pak buď přejde do appky, nebo odkryje formulář.
+    // Jazyk už vybraný: ukaž na login screenu „Načítám…" (žádná prázdná obrazovka).
+    // onAuth pak buď přejde do appky, nebo odkryje formulář.
     byEl("login-form").style.display = "none";
     var lm = byEl("login-msg"); lm.textContent = T[uiLang].loading; lm.style.display = "";
     show("login");
