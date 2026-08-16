@@ -228,6 +228,85 @@
   .stats .note { padding-top: 18px; text-align: center; color: var(--muted); font-size: 17px; }
 
   .footer-note { text-align: center; color: var(--muted); font-size: 16px; margin-top: 28px; line-height: 1.6; }
+
+  /* ================================================================
+     Úvodní stránka (landing) — první, co uvidí někdo, kdo appku nezná.
+     Vysvětlí, co to je, a nabídne jazyk. Vlastní scroll, žádný topbar.
+     ================================================================ */
+  #intro { gap: 0; padding-bottom: 12px; }
+  .intro-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 2px 0 6px; }
+  .intro-brand { font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: -.02em; }
+  .lang-toggle { display: inline-flex; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 3px; box-shadow: 0 2px 8px rgba(58,40,30,.05); }
+  .lang-toggle button { display: inline-flex; align-items: center; gap: 6px; background: none; border-radius: 999px; padding: 7px 12px; font-size: 14px; font-weight: 600; color: var(--muted); line-height: 1; }
+  .lang-toggle button .fl { font-size: 16px; }
+  .lang-toggle button.on { background: var(--accent-soft); color: var(--accent); }
+
+  .hero { padding: 14px 0 4px; }
+  .hero h1 { font-size: 34px; line-height: 1.12; margin: 6px 0 14px; }
+  .hero .lead { color: var(--muted); font-size: 19px; line-height: 1.5; margin: 0 0 24px; }
+
+  .benefits { display: grid; gap: 14px; }
+  .benefit { display: flex; gap: 16px; align-items: flex-start; background: var(--card); border-radius: var(--r-card); padding: 20px; box-shadow: 0 2px 12px rgba(58,40,30,.06); }
+  .benefit .ico { flex: none; width: 52px; height: 52px; border-radius: 16px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .benefit h3 { font-size: 19px; font-weight: 700; margin: 3px 0 5px; letter-spacing: -.01em; }
+  .benefit p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.5; }
+
+  .section-eyebrow { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); margin: 32px 0 14px; }
+
+  .steps { display: grid; gap: 12px; }
+  .step { display: flex; gap: 14px; align-items: center; }
+  .step .num { flex: none; width: 34px; height: 34px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+  .step .txt { font-size: 17px; line-height: 1.35; }
+
+  .intro-cta { margin: 32px 0 0; }
+  .cta-sub { text-align: center; color: var(--muted); font-size: 15px; margin: 14px 0 4px; }
+
+  /* ---- Barevnější, výraznější výběr jazyka (uilang + kurzy) ----
+     Vlaječka dostane barevnou dlaždici v barvě jazyka, ať je hned vidět. */
+  .dir--lang { gap: 14px; }
+  .dir--lang button { min-height: 80px; gap: 18px; padding: 16px 18px; border-color: var(--card);
+    transition: border-color .15s, background .15s, transform .06s, box-shadow .15s; }
+  .dir--lang button .flag { width: 58px; height: 58px; border-radius: 16px; display: inline-flex;
+    align-items: center; justify-content: center; font-size: 34px;
+    background: var(--tintsoft, var(--accent-soft)); }
+  .dir--lang button .lbl { font-size: 21px; }
+  .dir--lang button:hover { border-color: var(--tintline, var(--accent-line));
+    box-shadow: 0 6px 18px rgba(58,40,30,.09); }
+  .dir--lang button:active { transform: scale(.99); }
+
+  /* Ukázková kartička v hero (jen desktop) — vypadá jako karta z appky. */
+  .hero-visual { display: none; }
+  .mock-card {
+    background: var(--card); border-radius: var(--r-card); border: 1px solid var(--line);
+    box-shadow: 0 22px 50px rgba(58,40,30,.16);
+    width: 100%; max-width: 340px; padding: 30px 26px; text-align: center;
+    transform: rotate(-1.6deg);
+  }
+  .mock-tag { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; }
+  .mock-word { font-size: 42px; font-weight: 700; letter-spacing: -.02em; margin: 10px 0 2px; }
+  .mock-pron { color: var(--muted); font-size: 16px; }
+  .mock-speak { display: inline-flex; align-items: center; gap: 8px; background: var(--accent-soft);
+    color: var(--accent); border-radius: 999px; padding: 9px 18px; font-size: 15px; font-weight: 600; margin: 14px 0 2px; }
+  .mock-card hr { border: none; border-top: 1px solid var(--accent-line); width: 55%; margin: 16px auto; }
+  .mock-trans { font-size: 24px; font-weight: 700; }
+  .mock-sentence { font-size: 16px; font-weight: 600; line-height: 1.4; margin-top: 8px; }
+  .mock-sentence .nat { display: block; color: var(--muted); font-weight: 400; font-size: 15px; margin-top: 4px; }
+
+  /* Desktop: landing dostane víc prostoru (appkové obrazovky zůstávají 560px). */
+  @media (min-width: 760px) {
+    body.landing .wrap { max-width: 1040px; }
+    #intro { padding-bottom: 28px; }
+    .hero { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 48px; align-items: center; padding: 28px 0 8px; }
+    .hero h1 { font-size: 46px; margin-top: 0; }
+    .hero .lead { font-size: 20px; }
+    .hero-text .btn { width: auto; display: inline-block; min-width: 220px; padding-left: 40px; padding-right: 40px; }
+    .hero-visual { display: flex; justify-content: center; }
+    .benefits { grid-template-columns: repeat(3, 1fr); align-items: stretch; }
+    .benefit { flex-direction: column; gap: 12px; }
+    .steps { grid-template-columns: repeat(3, 1fr); }
+    .intro-cta { text-align: center; }
+    .intro-cta .btn { width: auto; display: inline-block; min-width: 240px; padding-left: 48px; padding-right: 48px; }
+  }
 </style>
 
 <body>
@@ -235,18 +314,77 @@
 
   <header class="topbar" id="topbar">Slovíčka</header>
 
+  <!-- (-3) ÚVODNÍ STRÁNKA / LANDING — první návštěva, než se vybere jazyk.
+       Texty plní applyIntroText() podle přepínače CZ/EN nahoře. -->
+  <section id="intro" class="screen">
+    <div class="intro-top">
+      <span class="intro-brand" id="intro-brand">Slovíčka</span>
+      <div class="lang-toggle" id="intro-toggle" role="group" aria-label="Language / Jazyk">
+        <button type="button" data-ui="cs" class="on" aria-pressed="true"><span class="fl">🇨🇿</span>Čeština</button>
+        <button type="button" data-ui="en" aria-pressed="false"><span class="fl">🇬🇧</span>English</button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="hero-text">
+        <h1 id="intro-title"></h1>
+        <p class="lead" id="intro-lead"></p>
+        <button class="btn" id="intro-cta-top"></button>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="mock-card">
+          <div class="mock-tag" id="mock-tag">🇪🇸 Español</div>
+          <div class="mock-word">gracias</div>
+          <div class="mock-pron" id="mock-pron"></div>
+          <div class="mock-speak" id="mock-speak"></div>
+          <hr>
+          <div class="mock-trans" id="mock-trans"></div>
+          <div class="mock-sentence">Muchas gracias por todo.<span class="nat" id="mock-sent-nat"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="section-eyebrow" id="intro-why"></h2>
+    <div class="benefits">
+      <div class="benefit">
+        <div class="ico" style="background:#ffdbd0">🧠</div>
+        <div><h3 id="intro-b1t"></h3><p id="intro-b1"></p></div>
+      </div>
+      <div class="benefit">
+        <div class="ico" style="background:#dbe7f7">🎯</div>
+        <div><h3 id="intro-b2t"></h3><p id="intro-b2"></p></div>
+      </div>
+      <div class="benefit">
+        <div class="ico" style="background:#e6f4ea">🌿</div>
+        <div><h3 id="intro-b3t"></h3><p id="intro-b3"></p></div>
+      </div>
+    </div>
+
+    <h2 class="section-eyebrow" id="intro-how"></h2>
+    <div class="steps">
+      <div class="step"><span class="num">1</span><span class="txt" id="intro-s1"></span></div>
+      <div class="step"><span class="num">2</span><span class="txt" id="intro-s2"></span></div>
+      <div class="step"><span class="num">3</span><span class="txt" id="intro-s3"></span></div>
+    </div>
+
+    <div class="intro-cta">
+      <button class="btn" id="intro-cta"></button>
+      <p class="cta-sub" id="intro-cta-sub"></p>
+    </div>
+  </section>
+
   <!-- (-2) VÝBĚR JAZYKA APLIKACE / CHOOSE INTERFACE LANGUAGE -->
   <section id="uilang" class="screen">
     <h1 id="uilang-title">Vyber jazyk</h1>
     <p class="sub" id="uilang-sub">Choose your language</p>
 
-    <div class="dir" id="uilang-choice">
-      <button data-ui="cs">
+    <div class="dir dir--lang" id="uilang-choice">
+      <button data-ui="cs" style="--tintsoft:#f7d9dd;--tintline:#e0b4bb">
         <span class="flag">🇨🇿</span>
         <span><span class="lbl">Čeština</span>
         <span class="hint" id="uilang-cs-hint">Učím se španělsky nebo anglicky</span></span>
       </button>
-      <button data-ui="en">
+      <button data-ui="en" style="--tintsoft:#dbe7f7;--tintline:#b4c8e3">
         <span class="flag">🇬🇧</span>
         <span><span class="lbl">English</span>
         <span class="hint" id="uilang-en-hint">Learn Czech or Spanish</span></span>
@@ -279,7 +417,7 @@
     <h1 id="lang-title">Dobrý den 👋</h1>
     <p class="sub" id="lang-sub">Co si dnes zopakujeme?</p>
 
-    <div class="dir" id="lang-choice"><!-- vyplní JS podle jazyka aplikace --></div>
+    <div class="dir dir--lang" id="lang-choice"><!-- vyplní JS podle jazyka aplikace --></div>
 
     <div class="screen-bottom">
       <div class="footer-note">
@@ -401,6 +539,26 @@
   var T = {
     cs: {
       topbar: "Slovíčka",
+      intro: {
+        title: "Naučte se slova, která opravdu použijete.",
+        lead: "Kartičky na nejčastější slova cizího jazyka. Postavené na tom, jak paměť doopravdy funguje — bez streaků, bez tlaku, bez reklam.",
+        cta: "Začít",
+        ctaSub: "Zdarma · bez reklam · na mobilu i počítači",
+        why: "Proč zrovna tohle",
+        b1t: "Postavené na tom, jak funguje paměť",
+        b1: "Slovo si vybavíte z hlavy a vrátí se přesně ve chvíli, kdy ho začínáte zapomínat. To je nejúčinnější způsob, jak si ho zapamatovat natrvalo.",
+        b2t: "Slova, která se vyplatí",
+        b2: "Začínáte od nejčastějších slov. Prvních tisíc jich pokryje většinu běžné řeči — učíte se tam, kde to má největší smysl.",
+        b3t: "Žádné streaky, žádný tlak",
+        b3: "Otevřete, projdete pár slov, zavřete. Vidíte svůj vlastní pokrok — ne žebříčky, srdíčka ani sérii, kterou nesmíte přerušit.",
+        how: "Jak to chodí",
+        s1: "Uvidíte slovo",
+        s2: "Zkusíte si vzpomenout na překlad",
+        s3: "Otočíte kartičku a řeknete, jestli jste to věděli",
+        mockPron: "grasyjas",
+        mockTrans: "děkuji",
+        mockSentNat: "Moc děkuju za všechno."
+      },
       uiTitle: "Vyber jazyk · Choose language",
       uiSub: "Nastavení jde kdykoliv změnit. · You can change this later.",
       uiCsHint: "Učím se španělsky nebo anglicky",
@@ -471,6 +629,26 @@
     },
     en: {
       topbar: "Vocabulary",
+      intro: {
+        title: "Learn the words you'll actually use.",
+        lead: "Flashcards for a language's most common words. Built on how memory really works — no streaks, no pressure, no ads.",
+        cta: "Get started",
+        ctaSub: "Free · no ads · works on phone and computer",
+        why: "Why this one",
+        b1t: "Built on how memory works",
+        b1: "You recall each word from memory, and it comes back right as you're about to forget it — the most effective way to make it stick.",
+        b2t: "The words worth knowing",
+        b2: "You start with the most common words. The first thousand cover most everyday speech, so you begin where it matters most.",
+        b3t: "No streaks, no pressure",
+        b3: "Open it, do a few words, close it. You see your own progress — not leaderboards, hearts, or a streak you can't break.",
+        how: "How it works",
+        s1: "You see a word",
+        s2: "You try to recall the translation",
+        s3: "You flip the card and say whether you knew it",
+        mockPron: "GRAH-syahs",
+        mockTrans: "thank you",
+        mockSentNat: "Thank you very much for everything."
+      },
       uiTitle: "Vyber jazyk · Choose language",
       uiSub: "Nastavení jde kdykoliv změnit. · You can change this later.",
       uiCsHint: "Učím se španělsky nebo anglicky",
@@ -802,6 +980,13 @@
     });
   }
 
+  // Barva dlaždice s vlaječkou podle jazyka (shoduje se s body[data-lang]).
+  var COURSE_TINT = {
+    es: { soft: "#ffdbd0", line: "#e3bfb4" },
+    en: { soft: "#dbe7f7", line: "#b4c8e3" },
+    cz: { soft: "#f7d9dd", line: "#e0b4bb" }
+  };
+
   // Postaví nabídku kurzů podle jazyka aplikace (rodný jazyk se nikdy neučí).
   function buildLangMenu() {
     var host = byEl("lang-choice");
@@ -810,6 +995,8 @@
       var c = COURSES[k];
       var b = document.createElement("button");
       b.setAttribute("data-lang", k);
+      var tint = COURSE_TINT[k];
+      if (tint) { b.style.setProperty("--tintsoft", tint.soft); b.style.setProperty("--tintline", tint.line); }
       b.innerHTML = "<span class='flag'>" + c.flag + "</span>" +
         "<span><span class='lbl'>" + escapeHtml(c.name[uiLang]) + "</span>" +
         "<span class='hint' id='lang-hint-" + k + "'></span></span>";
@@ -952,12 +1139,15 @@
 
   // ---------- Obrazovky ----------
   var screens = {
+    intro: byEl("intro"),
     uilang: byEl("uilang"), login: byEl("login"), lang: byEl("lang"),
     home: byEl("home"), study: byEl("study"), end: byEl("end")
   };
   function show(name) {
     Object.keys(screens).forEach(function (k) { screens[k].classList.toggle("active", k === name); });
-    document.body.classList.toggle("show-topbar", name !== "lang" && name !== "login" && name !== "uilang");
+    document.body.classList.toggle("show-topbar",
+      name !== "intro" && name !== "lang" && name !== "login" && name !== "uilang");
+    document.body.classList.toggle("landing", name === "intro"); // landing = širší layout na desktopu
     window.scrollTo(0, 0);
   }
   function currentScreen() {
@@ -984,6 +1174,43 @@
     b.addEventListener("click", function () { chooseUiLang(b.getAttribute("data-ui")); });
   });
   byEl("change-ui-btn").addEventListener("click", function () { show("uilang"); });
+
+  // ---------- Úvodní stránka (landing) ----------
+  // Jazyk se tu ještě neukládá — teprve CTA („Začít") ho potvrdí přes chooseUiLang.
+  var introLang = "cs";
+  function applyIntroText(lang) {
+    introLang = (lang === "en") ? "en" : "cs";
+    var t = T[introLang].intro;
+    byEl("intro-brand").textContent = T[introLang].topbar;
+    byEl("intro-title").textContent = t.title;
+    byEl("intro-lead").textContent = t.lead;
+    byEl("intro-cta-top").textContent = t.cta;
+    byEl("intro-cta").textContent = t.cta;
+    byEl("intro-cta-sub").textContent = t.ctaSub;
+    byEl("intro-why").textContent = t.why;
+    byEl("intro-how").textContent = t.how;
+    byEl("intro-b1t").textContent = t.b1t; byEl("intro-b1").textContent = t.b1;
+    byEl("intro-b2t").textContent = t.b2t; byEl("intro-b2").textContent = t.b2;
+    byEl("intro-b3t").textContent = t.b3t; byEl("intro-b3").textContent = t.b3;
+    byEl("intro-s1").textContent = t.s1;
+    byEl("intro-s2").textContent = t.s2;
+    byEl("intro-s3").textContent = t.s3;
+    byEl("mock-pron").textContent = t.mockPron;
+    byEl("mock-speak").textContent = T[introLang].playWord;
+    byEl("mock-trans").textContent = t.mockTrans;
+    byEl("mock-sent-nat").textContent = t.mockSentNat;
+    document.querySelectorAll("#intro-toggle button").forEach(function (b) {
+      var on = b.getAttribute("data-ui") === introLang;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    document.documentElement.lang = introLang;
+  }
+  document.querySelectorAll("#intro-toggle button").forEach(function (b) {
+    b.addEventListener("click", function () { applyIntroText(b.getAttribute("data-ui")); });
+  });
+  byEl("intro-cta").addEventListener("click", function () { chooseUiLang(introLang); });
+  byEl("intro-cta-top").addEventListener("click", function () { chooseUiLang(introLang); });
 
   // ---------- Výběr kurzu ----------
   // (tlačítka staví buildLangMenu(); posluchače přidává tam)
@@ -1491,8 +1718,8 @@
       useAnonStorage();           // ať další účet nezdědí pokrok předchozího
       refreshCounts();
       showAccount(null);
-      // Nejdřív vybrat jazyk aplikace (i před přihlášením), pak teprve login.
-      if (localStorage.getItem(UI_KEY) == null) show("uilang");
+      // Nejdřív úvodní stránka + volba jazyka (i před přihlášením), pak teprve login.
+      if (localStorage.getItem(UI_KEY) == null) show("intro");
       else showLoginForm();
     }
   }
@@ -1584,7 +1811,7 @@
   // jinak rovnou na výběr kurzu (volba jazyka je zapamatovaná).
   function landing() {
     if (localStorage.getItem(UI_KEY) == null) {
-      show("uilang");
+      show("intro");
     } else {
       buildLangMenu();
       show("lang");
@@ -1595,15 +1822,17 @@
   setCourse(defaultCourse());   // připraví výchozí kurz (data + barvy + hlas)
   applyUiText();                // texty rozhraní podle uloženého jazyka (default cs)
   buildLangMenu();
+  // Landing: první návštěvník ještě nemá vybraný jazyk → nabídni ho podle prohlížeče.
+  applyIntroText((navigator.language || "").toLowerCase().indexOf("en") === 0 ? "en" : "cs");
 
   sb = initSupabase();
   if (!sb) {
     // Supabase není nastavený → původní čistě lokální režim
     landing();
   } else if (localStorage.getItem(UI_KEY) == null) {
-    // První návštěva: nejdřív výběr jazyka aplikace, teprve pak login.
+    // První návštěva: nejdřív úvodní stránka + výběr jazyka, teprve pak login.
     // getSession stejně běží na pozadí; onAuth respektuje „jazyk ještě nevybrán".
-    show("uilang");
+    show("intro");
     sb.auth.getSession().then(function (res) {
       onAuth(res && res.data && res.data.session);
     }).catch(function () {});
