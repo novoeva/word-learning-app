@@ -394,6 +394,7 @@
 
   <!-- (-1) PŘIHLÁŠENÍ (jen když je nastavený Supabase) -->
   <section id="login" class="screen">
+    <button class="linkbtn" id="login-back" style="align-self:flex-start;padding-left:0">← Zpět na úvod</button>
     <h1 id="login-title">Vítej 👋</h1>
     <p class="sub" id="login-sub">Přihlas se e-mailem. Pošleme ti přihlašovací odkaz — žádné heslo si nemusíš pamatovat.</p>
 
@@ -568,6 +569,7 @@
       loginPlaceholder: "tvůj@email.cz",
       loginSend: "Poslat přihlašovací odkaz",
       loginFooter: "Odkaz otevři na tomhle zařízení. Pak zůstaneš přihlášený<br>a pokrok tě sleduje na všech zařízeních.",
+      loginBack: "← Zpět na úvod",
       loginSending: "Posílám odkaz…",
       loginBadEmail: "Zadej prosím platný e-mail.",
       loginNoAuth: "Přihlášení zatím není nastavené.",
@@ -658,6 +660,7 @@
       loginPlaceholder: "your@email.com",
       loginSend: "Send login link",
       loginFooter: "Open the link on this device. Then you'll stay signed in<br>and your progress follows you across devices.",
+      loginBack: "← Back to intro",
       loginSending: "Sending link…",
       loginBadEmail: "Please enter a valid email.",
       loginNoAuth: "Sign-in isn't set up yet.",
@@ -1143,13 +1146,33 @@
     uilang: byEl("uilang"), login: byEl("login"), lang: byEl("lang"),
     home: byEl("home"), study: byEl("study"), end: byEl("end")
   };
-  function show(name) {
+  // Historie prohlížeče: každá obrazovka má vlastní #hash, aby fungovalo tlačítko
+  // Zpět (např. login → zpět na úvodní stránku). URL se NEmění, když se v ní vrací
+  // přihlašovací token z magic linku — jinak by se přihlášení rozbilo.
+  var navStarted = false;
+  function syncHistory(name) {
+    if (location.hash.indexOf("access_token") > -1 || location.search.indexOf("code=") > -1) return;
+    var target = location.pathname + location.search + "#" + name;
+    if (!navStarted) {
+      history.replaceState({ screen: name }, "", target);
+      navStarted = true;
+    } else if (!history.state || history.state.screen !== name) {
+      history.pushState({ screen: name }, "", target);
+    }
+  }
+  function show(name, fromHistory) {
     Object.keys(screens).forEach(function (k) { screens[k].classList.toggle("active", k === name); });
     document.body.classList.toggle("show-topbar",
       name !== "intro" && name !== "lang" && name !== "login" && name !== "uilang");
     document.body.classList.toggle("landing", name === "intro"); // landing = širší layout na desktopu
     window.scrollTo(0, 0);
+    if (!fromHistory) syncHistory(name);
   }
+  window.addEventListener("popstate", function (e) {
+    var name = (e.state && e.state.screen) || (location.hash ? location.hash.slice(1) : "");
+    if (!screens[name]) name = "intro";
+    show(name, true); // z historie: překresli, ale nepřidávej nový záznam
+  });
   function currentScreen() {
     var names = Object.keys(screens);
     for (var i = 0; i < names.length; i++) {
@@ -1695,6 +1718,7 @@
     show("login");
   }
 
+  var authSettled = false; // proběhlo první vyhodnocení přihlášení? (řídí auto-přesměrování z landingu)
   function onAuth(session) {
     var user = session && session.user;
     sbToken = (session && session.access_token) || null;
@@ -1708,20 +1732,26 @@
         syncPull();               // pak stáhni a slouči cloud
       }
       var cur = currentScreen();
-      if (cur === "login" || cur === null) landing();
+      // Z landingu do appky přesuň jen při PRVNÍM vyhodnocení (landing je během auth-checku
+      // jen placeholder). Pozdější token-refresh nesmí vytrhnout přihlášeného z landingu,
+      // na který se sám vrátil tlačítkem Zpět.
+      if (cur === "login" || cur === null || (cur === "intro" && !authSettled)) landing();
       // po návratu z magic linku ukliď token z adresy
       if (location.hash.indexOf("access_token") > -1 || location.search.indexOf("code=") > -1) {
         try { history.replaceState(null, "", location.pathname); } catch (e) {}
       }
     } else {
+      var wasLoggedIn = !!sbUser;
       sbUser = null;
       useAnonStorage();           // ať další účet nezdědí pokrok předchozího
       refreshCounts();
       showAccount(null);
-      // Nejdřív úvodní stránka + volba jazyka (i před přihlášením), pak teprve login.
-      if (localStorage.getItem(UI_KEY) == null) show("intro");
-      else showLoginForm();
+      // Landing je vstupní stránka pro KAŽDÉHO nepřihlášeného (nový i vracející se).
+      // Ukaž ji při prvním načtení a po odhlášení; nevytrhávej ale uživatele
+      // z rozepsaného loginu kvůli dalšímu (planému) auth eventu.
+      if (!authSettled || wasLoggedIn) show("intro");
     }
+    authSettled = true;
   }
 
   function sendMagicLink() {
@@ -1745,6 +1775,8 @@
       say(t.loginErr);
     });
   }
+  // Login je vždy dosažen z landingu (přes CTA), takže Zpět se vrátí na landing.
+  byEl("login-back").addEventListener("click", function () { history.back(); });
   byEl("login-send").addEventListener("click", sendMagicLink);
   byEl("login-email").addEventListener("keydown", function (e) {
     // Enter respektuje zablokované tlačítko, ať se odkaz neposílá vícekrát (rate limit).
@@ -1777,6 +1809,7 @@
     setTxt("login-sub", t.loginSub);
     var em = byEl("login-email"); if (em) em.placeholder = t.loginPlaceholder;
     setTxt("login-send", t.loginSend);
+    setTxt("login-back", t.loginBack);
     setHtml("login-footer", t.loginFooter);
     // výběr kurzu
     setTxt("lang-title", t.langTitle);
@@ -1823,29 +1856,21 @@
   applyUiText();                // texty rozhraní podle uloženého jazyka (default cs)
   buildLangMenu();
   // Landing: první návštěvník ještě nemá vybraný jazyk → nabídni ho podle prohlížeče.
-  applyIntroText((navigator.language || "").toLowerCase().indexOf("en") === 0 ? "en" : "cs");
+  // Přepínač na landingu: vracejícímu se nabídni jeho uložený jazyk, nováčkovi jazyk prohlížeče.
+  applyIntroText(localStorage.getItem(UI_KEY) ||
+    ((navigator.language || "").toLowerCase().indexOf("en") === 0 ? "en" : "cs"));
 
   sb = initSupabase();
   if (!sb) {
     // Supabase není nastavený → původní čistě lokální režim
     landing();
-  } else if (localStorage.getItem(UI_KEY) == null) {
-    // První návštěva: nejdřív úvodní stránka + výběr jazyka, teprve pak login.
-    // getSession stejně běží na pozadí; onAuth respektuje „jazyk ještě nevybrán".
+  } else {
+    // Landing je vstupní stránka pro každého nepřihlášeného. getSession běží na pozadí;
+    // když je platná session, onAuth přepne rovnou do appky (landing se jen mihne).
     show("intro");
     sb.auth.getSession().then(function (res) {
       onAuth(res && res.data && res.data.session);
     }).catch(function () {});
-    sb.auth.onAuthStateChange(function (_event, session) { onAuth(session); });
-  } else {
-    // Jazyk už vybraný: ukaž na login screenu „Načítám…" (žádná prázdná obrazovka).
-    // onAuth pak buď přejde do appky, nebo odkryje formulář.
-    byEl("login-form").style.display = "none";
-    var lm = byEl("login-msg"); lm.textContent = T[uiLang].loading; lm.style.display = "";
-    show("login");
-    sb.auth.getSession().then(function (res) {
-      onAuth(res && res.data && res.data.session);
-    }).catch(function () { showLoginForm(); });
     sb.auth.onAuthStateChange(function (_event, session) { onAuth(session); });
   }
 })();
